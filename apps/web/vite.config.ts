@@ -14,7 +14,11 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/v1": "http://localhost:1234",
+      "/api": {
+        target: "https://lm.omnigatestudios.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
     },
   },
 })

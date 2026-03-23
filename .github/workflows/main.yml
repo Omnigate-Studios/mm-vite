@@ -27,6 +27,8 @@ jobs:
       - run: npm ci
 
       - run: npm run build
+        env:
+          VITE_API_BASE: https://mm-server-761844360297.us-central1.run.app
 
       - uses: actions/upload-pages-artifact@v3
         with:

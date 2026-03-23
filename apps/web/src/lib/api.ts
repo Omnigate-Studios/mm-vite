@@ -1,6 +1,4 @@
-export const API_BASE = import.meta.env.PROD
-  ? "https://lm.omnigatestudios.com"
-  : "/api"
+export const API_BASE = "/api"
 
 export interface LMModel {
   id: string

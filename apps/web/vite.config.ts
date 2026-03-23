@@ -15,7 +15,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "https://lm.omnigatestudios.com",
+        target: "https://mm-server-761844360297.us-central1.run.app",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ""),
       },

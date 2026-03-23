@@ -27,18 +27,23 @@ export function ChatInput({ onSend, onStop, isStreaming }: ChatInputProps) {
   }
 
   return (
-    <div className="border-t bg-background px-4 py-3">
+    <div className="fixed bottom-0 w-full border-t bg-background px-4 py-3">
       <div className="flex items-end gap-2">
         <Textarea
           ref={ref}
           placeholder="Message… (Enter to send, Shift+Enter for newline)"
-          className="max-h-40 min-h-[2.5rem] flex-1 resize-none"
+          className="max-h-40 min-h-10 flex-1 resize-none"
           rows={1}
           onKeyDown={handleKeyDown}
           disabled={isStreaming}
         />
         {isStreaming ? (
-          <Button size="icon" variant="outline" onClick={onStop} aria-label="Stop">
+          <Button
+            size="icon"
+            variant="outline"
+            onClick={onStop}
+            aria-label="Stop"
+          >
             <Square size={16} />
           </Button>
         ) : (

@@ -18,15 +18,15 @@ export function Chat() {
 
   return (
     <div className="flex h-svh flex-col">
-      <header className="border-b px-4 py-3">
+      <header className="fixed top-0 z-1 w-full border-b bg-black px-4 py-3">
         <h1 className="text-sm font-medium">Chat</h1>
-        <p className="text-muted-foreground text-xs">{activeModel}</p>
+        <p className="text-xs text-muted-foreground">{activeModel}</p>
       </header>
 
-      <ScrollArea className="flex-1 px-4 py-4">
+      <ScrollArea className="flex-1 px-4 py-20">
         <div className="flex flex-col gap-4">
           {messages.length === 0 && (
-            <p className="text-muted-foreground mt-8 text-center text-sm">
+            <p className="mt-8 text-center text-sm text-muted-foreground">
               Start a conversation below.
             </p>
           )}
@@ -34,7 +34,7 @@ export function Chat() {
             <MessageBubble key={msg.id} message={msg} />
           ))}
           {error && (
-            <p className="text-destructive text-center text-xs">{error}</p>
+            <p className="text-center text-xs text-destructive">{error}</p>
           )}
           <div ref={bottomRef} />
         </div>

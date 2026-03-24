@@ -1,7 +1,9 @@
+// components/chat/MessageBubble.tsx
 import { cn } from '@workspace/ui/lib/utils';
 import { Bot, User } from 'lucide-react';
 import type { ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
 import remarkBreaks from 'remark-breaks';
 
 export type MessageRole = 'user' | 'assistant';
@@ -14,6 +16,8 @@ export interface Message {
 
 interface MessageBubbleProps {
   message: Message;
+  activeSentence?: string | null;
+  activeMessageId?: string | null;
 }
 
 const roleConfig: Record<
@@ -38,8 +42,22 @@ function Markdown({ children }: { children?: ReactNode }) {
   return <span className="block">{children}</span>;
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+function withHighlight(content: string, activeSentence: string) {
+  const idx = content.indexOf(activeSentence);
+  if (idx === -1) return content;
+  const before = content.slice(0, idx);
+  const after = content.slice(idx + activeSentence.length);
+  return `${before}<mark>${activeSentence}</mark>${after}`;
+}
+
+export function MessageBubble({
+  message,
+  activeSentence,
+  activeMessageId,
+}: MessageBubbleProps) {
   const { icon, label, align, bubble } = roleConfig[message.role];
+  const isActive = activeMessageId === message.id && !!activeSentence;
+
   const classes = [
     '[&_em]:italic',
     '[&_code]:rounded [&_code]:bg-black/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[0.9em]',
@@ -70,11 +88,19 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         <div className={cn('flex flex-col gap-4 wrap-break-word', ...classes)}>
           <ReactMarkdown
             remarkPlugins={[remarkBreaks]}
+            rehypePlugins={[rehypeRaw]}
             components={{
               p: Markdown,
+              mark: ({ children }) => (
+                <mark className="rounded bg-primary/20 font-bold not-italic">
+                  {children}
+                </mark>
+              ),
             }}
           >
-            {message.content}
+            {isActive
+              ? withHighlight(message.content, activeSentence!)
+              : message.content}
           </ReactMarkdown>
         </div>
       </div>

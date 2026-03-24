@@ -1,3 +1,4 @@
+// hooks/useKokoro.ts
 import { stripAsterisks } from '@/utils';
 import { useEffect, useRef, useState } from 'react';
 
@@ -26,8 +27,11 @@ export const useKokoro = (voice = 'af_nicole') => {
   const [ready, setReady] = useState(isReady);
   const [speaking, setSpeaking] = useState(false);
   const [muted, setMuted] = useState(false);
+  const [activeSentence, setActiveSentence] = useState<string | null>(null);
+  const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
   const mutedRef = useRef(false);
   const audioQueue = useRef<string[]>([]);
+  const sentenceQueue = useRef<{ text: string; messageId: string }[]>([]);
   const isPlaying = useRef(false);
   const playNextRef = useRef<() => void>(() => {});
 
@@ -36,11 +40,16 @@ export const useKokoro = (voice = 'af_nicole') => {
       if (audioQueue.current.length === 0) {
         isPlaying.current = false;
         setSpeaking(false);
+        setActiveSentence(null);
+        setActiveMessageId(null);
         return;
       }
       isPlaying.current = true;
       setSpeaking(true);
       const url = audioQueue.current.shift()!;
+      const entry = sentenceQueue.current.shift();
+      setActiveSentence(entry?.text ?? null);
+      setActiveMessageId(entry?.messageId ?? null);
       const el = new Audio(url);
       el.muted = mutedRef.current;
       el.onended = () => {
@@ -59,9 +68,11 @@ export const useKokoro = (voice = 'af_nicole') => {
     };
   }, []);
 
-  const enqueue = (text: string) => {
+  const enqueue = (text: string, messageId: string) => {
     if (!ready) return;
-    worker.postMessage({ type: 'generate', text: stripAsterisks(text), voice });
+    const cleaned = stripAsterisks(text);
+    sentenceQueue.current.push({ text: cleaned, messageId });
+    worker.postMessage({ type: 'generate', text: cleaned, voice });
   };
 
   const toggleMute = () => {
@@ -69,5 +80,13 @@ export const useKokoro = (voice = 'af_nicole') => {
     setMuted(mutedRef.current);
   };
 
-  return { enqueue, ready, speaking, muted, toggleMute };
+  return {
+    enqueue,
+    ready,
+    speaking,
+    muted,
+    toggleMute,
+    activeSentence,
+    activeMessageId,
+  };
 };

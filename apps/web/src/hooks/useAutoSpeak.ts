@@ -1,3 +1,4 @@
+// hooks/useAutoSpeak.ts
 import type { Message } from '@/components/chat/MessageBubble';
 import { stripAsterisks } from '@/utils';
 import { useEffect, useRef } from 'react';
@@ -5,7 +6,7 @@ import { useEffect, useRef } from 'react';
 export const useAutoSpeak = (
   messages: Message[],
   isStreaming: boolean,
-  enqueue: (text: string) => void,
+  enqueue: (text: string, messageId: string) => void,
   ready: boolean
 ) => {
   const spokenUpTo = useRef(0);
@@ -27,7 +28,7 @@ export const useAutoSpeak = (
 
     if (!isStreaming) {
       if (unspoken.trim()) {
-        enqueue(unspoken.trim());
+        enqueue(unspoken.trim(), last.id);
         spokenUpTo.current = content.length;
       }
       return;
@@ -37,7 +38,7 @@ export const useAutoSpeak = (
     if (!sentences) return;
 
     for (const sentence of sentences) {
-      enqueue(sentence.trim());
+      enqueue(sentence.trim(), last.id);
       spokenUpTo.current += sentence.length;
     }
   }, [messages, isStreaming, ready, enqueue]);

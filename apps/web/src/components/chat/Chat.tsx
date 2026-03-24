@@ -12,7 +12,8 @@ import { useAutoSpeak } from '@/hooks/useAutoSpeak';
 
 export function Chat() {
   const { messages, sendMessage, isStreaming, error, stop } = useChat();
-  const { enqueue, ready, muted, toggleMute } = useKokoro('af_aoede');
+  const { enqueue, ready, muted, toggleMute, activeSentence, activeMessageId } =
+    useKokoro('af_nicole');
   const { data: models } = useModels();
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -58,7 +59,11 @@ export function Chat() {
           )}
           {messages.map((msg) => (
             <div className="flex flex-col gap-2" key={msg.id}>
-              <MessageBubble message={msg} />
+              <MessageBubble
+                message={msg}
+                activeSentence={activeSentence}
+                activeMessageId={activeMessageId}
+              />
             </div>
           ))}
           {error && (

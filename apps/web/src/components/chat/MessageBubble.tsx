@@ -67,7 +67,17 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           bubble
         )}
       >
-        <div className={cn("wrap-break-word", em, code, ol, ul, p, pre)}>
+        <div
+          className={cn(
+            "flex flex-col gap-2 wrap-break-word",
+            em,
+            code,
+            ol,
+            ul,
+            p,
+            pre
+          )}
+        >
           <ReactMarkdown
             remarkPlugins={[remarkBreaks]}
             components={{

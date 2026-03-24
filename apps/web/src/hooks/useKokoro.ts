@@ -35,8 +35,6 @@ export const useKokoro = (voice = 'af_nicole') => {
 
     workerRef.current = worker;
     worker.postMessage({ type: 'init' });
-
-    return () => worker.terminate();
   }, []);
 
   const speak = (text: string) => {

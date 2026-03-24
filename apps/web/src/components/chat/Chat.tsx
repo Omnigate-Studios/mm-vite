@@ -1,4 +1,3 @@
-// components/Chat.tsx
 import { useEffect, useRef } from 'react';
 import { ScrollArea } from '@workspace/ui/components/scroll-area';
 import { useChat } from '@/hooks/useChat';

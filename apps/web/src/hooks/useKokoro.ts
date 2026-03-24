@@ -1,4 +1,3 @@
-// hooks/useKokoro.ts
 import { stripAsterisks } from '@/utils';
 import { useEffect, useRef, useState } from 'react';
 

@@ -1,4 +1,3 @@
-// components/chat/MessageBubble.tsx
 import { cn } from '@workspace/ui/lib/utils';
 import { Bot, User } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -92,7 +91,7 @@ export function MessageBubble({
             components={{
               p: Markdown,
               mark: ({ children }) => (
-                <mark className="rounded bg-primary/20 font-bold not-italic">
+                <mark className="rounded bg-primary/20 font-bold text-foreground not-italic">
                   {children}
                 </mark>
               ),

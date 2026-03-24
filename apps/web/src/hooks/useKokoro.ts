@@ -8,10 +8,14 @@ const worker = new Worker(
 
 let onReadyCallback: (() => void) | null = null;
 let onDoneCallback: ((wav: ArrayBuffer) => void) | null = null;
+let isReady = false;
 
 worker.onmessage = (e) => {
   const { type, wav } = e.data;
-  if (type === 'ready') onReadyCallback?.();
+  if (type === 'ready') {
+    isReady = true;
+    onReadyCallback?.();
+  }
   if (type === 'done') onDoneCallback?.(wav);
 };
 
@@ -20,7 +24,7 @@ worker.onerror = (e) => console.error('Worker error:', e);
 worker.postMessage({ type: 'init' });
 
 export const useKokoro = (voice = 'af_nicole') => {
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(isReady);
   const [speaking, setSpeaking] = useState(false);
 
   useEffect(() => {

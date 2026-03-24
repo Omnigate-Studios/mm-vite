@@ -69,7 +69,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       >
         <div
           className={cn(
-            "flex flex-col gap-2 wrap-break-word",
+            "flex flex-col gap-4 wrap-break-word",
             em,
             code,
             ol,

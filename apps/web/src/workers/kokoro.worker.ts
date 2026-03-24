@@ -1,5 +1,7 @@
 import { KokoroTTS } from 'kokoro-js';
 
+const supportsWebGPU = 'gpu' in navigator;
+
 let tts: KokoroTTS | null = null;
 
 self.onmessage = async (e) => {
@@ -9,11 +11,9 @@ self.onmessage = async (e) => {
     tts = await KokoroTTS.from_pretrained(
       'onnx-community/Kokoro-82M-v1.0-ONNX',
       {
-        dtype: 'q4',
-        device: 'wasm',
-        progress_callback: (progress) => {
-          console.log(progress);
-        },
+        dtype: supportsWebGPU ? 'fp32' : 'q4',
+        device: supportsWebGPU ? 'webgpu' : 'wasm',
+        progress_callback: (progress) => console.log(progress),
       }
     );
     self.postMessage({ type: 'ready' });

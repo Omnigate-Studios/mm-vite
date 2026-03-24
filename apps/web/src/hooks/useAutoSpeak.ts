@@ -1,4 +1,5 @@
 import type { Message } from '@/components/chat/MessageBubble';
+import { stripAsterisks } from '@/utils';
 import { useEffect, useRef } from 'react';
 
 export const useAutoSpeak = (
@@ -21,7 +22,7 @@ export const useAutoSpeak = (
       spokenUpTo.current = 0;
     }
 
-    const content = last.content;
+    const content = stripAsterisks(last.content);
     const unspoken = content.slice(spokenUpTo.current);
 
     if (!isStreaming) {

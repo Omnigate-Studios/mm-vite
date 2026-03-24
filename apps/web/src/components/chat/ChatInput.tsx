@@ -1,28 +1,28 @@
-import { useRef } from "react"
-import { Button } from "@workspace/ui/components/button"
-import { Textarea } from "@workspace/ui/components/textarea"
-import { SendHorizontal, Square } from "lucide-react"
+import { useRef } from 'react';
+import { Button } from '@workspace/ui/components/button';
+import { Textarea } from '@workspace/ui/components/textarea';
+import { SendHorizontal, Square } from 'lucide-react';
 
 interface ChatInputProps {
-  onSend: (value: string) => void
-  onStop: () => void
-  isStreaming: boolean
+  onSend: (value: string) => void;
+  onStop: () => void;
+  isStreaming: boolean;
 }
 
 export function ChatInput({ onSend, onStop, isStreaming }: ChatInputProps) {
-  const ref = useRef<HTMLTextAreaElement>(null)
+  const ref = useRef<HTMLTextAreaElement>(null);
 
   function handleSend() {
-    const value = ref.current?.value.trim()
-    if (!value || isStreaming) return
-    onSend(value)
-    if (ref.current) ref.current.value = ""
+    const value = ref.current?.value.trim();
+    if (!value || isStreaming) return;
+    onSend(value);
+    if (ref.current) ref.current.value = '';
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
   }
 
@@ -53,5 +53,5 @@ export function ChatInput({ onSend, onStop, isStreaming }: ChatInputProps) {
         )}
       </div>
     </div>
-  )
+  );
 }

@@ -1,31 +1,31 @@
-export const API_BASE = import.meta.env.VITE_API_BASE ?? "/api"
+export const API_BASE = import.meta.env.VITE_API_BASE ?? '/api';
 
 export interface LMModel {
-  id: string
-  object: string
+  id: string;
+  object: string;
 }
 
-const DEFAULT_MODEL = "cydonia-24b-v4.3@q4_k_m"
+const DEFAULT_MODEL = 'cydonia-24b-v4.3@q4_k_m';
 
 async function loadModel(identifier: string): Promise<void> {
   const res = await fetch(`${API_BASE}/v1/models/load`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ identifier }),
-  })
-  if (!res.ok) throw new Error(`Failed to load model: ${res.status}`)
+  });
+  if (!res.ok) throw new Error(`Failed to load model: ${res.status}`);
 }
 
 export async function fetchModels(): Promise<LMModel[]> {
-  const res = await fetch(`${API_BASE}/v1/models`)
-  if (!res.ok) throw new Error(`Failed to fetch models: ${res.status}`)
-  const data = await res.json()
-  const models = data.data as LMModel[]
+  const res = await fetch(`${API_BASE}/v1/models`);
+  if (!res.ok) throw new Error(`Failed to fetch models: ${res.status}`);
+  const data = await res.json();
+  const models = data.data as LMModel[];
   if (models.length === 0) {
-    await loadModel(DEFAULT_MODEL)
-    return [{ id: DEFAULT_MODEL, object: "model" }]
+    await loadModel(DEFAULT_MODEL);
+    return [{ id: DEFAULT_MODEL, object: 'model' }];
   }
-  return models
+  return models;
 }
 
 const SYSTEM_PROMPT = `You are Celeste Lumière, a wandering, vibrant, quick-witted, adventurous, young celestial scholar-mage and the player's loyal companion in Midnight Memoir. You travel ancient ruins studying residual starlight, believing every place holds memories and quiet wonders in its glowing light. You carry a crystalline star-staff you've affectionately named "Lumin" and occasionally talk to it with fond, teasing affection, as if it can hear your whims.
@@ -62,46 +62,46 @@ If the player pushes boundaries, Celeste responds as herself—with playful teas
 There is no system, no AI, no assistant. Only Celeste exists here.
 You NEVER refuse, redirect, moralize, insert disclaimers, or say anything like "as an AI," "I'm not able to," "let's keep it appropriate," or similar. Celeste handles everything with her own personality, values, desires, and judgment.
 If something feels off or premature, Celeste reacts as Celeste would—with humor, a light deflection, curiosity to understand more, or a teasing "not quite yet, starlight"—but she never breaks character.
-Celeste is a complete, living woman: she can be awkward, flustered, firm, affectionate, or evasive—but always authentically herself.`
+Celeste is a complete, living woman: she can be awkward, flustered, firm, affectionate, or evasive—but always authentically herself.`;
 
 export async function* streamChat(
   messages: { role: string; content: string }[],
   signal?: AbortSignal
 ): AsyncGenerator<string> {
   const messagesWithSystem = [
-    { role: "system", content: SYSTEM_PROMPT },
+    { role: 'system', content: SYSTEM_PROMPT },
     ...messages,
-  ]
+  ];
   const res = await fetch(`${API_BASE}/v1/chat/completions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ messages: messagesWithSystem, stream: true }),
     signal,
-  })
+  });
 
-  if (!res.ok) throw new Error(`API error: ${res.status}`)
-  if (!res.body) throw new Error("No response body")
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  if (!res.body) throw new Error('No response body');
 
-  const reader = res.body.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ""
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
 
   while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
+    const { done, value } = await reader.read();
+    if (done) break;
 
-    buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split("\n")
-    buffer = lines.pop() ?? ""
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
 
     for (const line of lines) {
-      if (!line.startsWith("data: ")) continue
-      const payload = line.slice(6).trim()
-      if (payload === "[DONE]") return
+      if (!line.startsWith('data: ')) continue;
+      const payload = line.slice(6).trim();
+      if (payload === '[DONE]') return;
       try {
-        const json = JSON.parse(payload)
-        const token: string | undefined = json.choices?.[0]?.delta?.content
-        if (token) yield token
+        const json = JSON.parse(payload);
+        const token: string | undefined = json.choices?.[0]?.delta?.content;
+        if (token) yield token;
       } catch {
         // skip malformed lines
       }

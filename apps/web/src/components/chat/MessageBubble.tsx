@@ -1,19 +1,19 @@
-import { cn } from "@workspace/ui/lib/utils"
-import { Bot, User } from "lucide-react"
-import type { ReactNode } from "react"
-import ReactMarkdown from "react-markdown"
-import remarkBreaks from "remark-breaks"
+import { cn } from '@workspace/ui/lib/utils';
+import { Bot, User } from 'lucide-react';
+import type { ReactNode } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
 
-export type MessageRole = "user" | "assistant"
+export type MessageRole = 'user' | 'assistant';
 
 export interface Message {
-  id: string
-  role: MessageRole
-  content: string
+  id: string;
+  role: MessageRole;
+  content: string;
 }
 
 interface MessageBubbleProps {
-  message: Message
+  message: Message;
 }
 
 const roleConfig: Record<
@@ -22,39 +22,39 @@ const roleConfig: Record<
 > = {
   user: {
     icon: <User size={16} />,
-    label: "You",
-    align: "items-end",
-    bubble: "bg-primary text-primary-foreground",
+    label: 'You',
+    align: 'items-end',
+    bubble: 'bg-primary text-primary-foreground',
   },
   assistant: {
     icon: <Bot size={16} />,
-    label: "Assistant",
-    align: "items-start",
-    bubble: "bg-muted text-foreground",
+    label: 'Assistant',
+    align: 'items-start',
+    bubble: 'bg-muted text-foreground',
   },
-}
+};
 
 function Markdown({ children }: { children?: ReactNode }) {
-  return <span className="block">{children}</span>
+  return <span className="block">{children}</span>;
 }
 
 export function MessageBubble({ message }: MessageBubbleProps) {
-  const { icon, label, align, bubble } = roleConfig[message.role]
+  const { icon, label, align, bubble } = roleConfig[message.role];
   const classes = [
-    "[&_em]:italic",
-    "[&_code]:rounded [&_code]:bg-black/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[0.9em]",
-    "[&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5",
-    "[&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5",
-    "[&_p]:mb-2 [&_p]:last:mb-0",
-    "[&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-black/10 [&_pre]:p-3",
-  ]
+    '[&_em]:italic',
+    '[&_code]:rounded [&_code]:bg-black/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[0.9em]',
+    '[&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5',
+    '[&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5',
+    '[&_p]:mb-2 [&_p]:last:mb-0',
+    '[&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-black/10 [&_pre]:p-3',
+  ];
 
   return (
     <div
       className={cn(
-        "flex max-w-[75%] flex-col gap-1",
+        'flex max-w-[75%] flex-col gap-1',
         align,
-        message.role === "user" && "self-end"
+        message.role === 'user' && 'self-end'
       )}
     >
       <span className="flex items-center gap-1 px-1 text-xs text-muted-foreground">
@@ -63,11 +63,11 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       </span>
       <div
         className={cn(
-          "rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
+          'rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
           bubble
         )}
       >
-        <div className={cn("flex flex-col gap-4 wrap-break-word", ...classes)}>
+        <div className={cn('flex flex-col gap-4 wrap-break-word', ...classes)}>
           <ReactMarkdown
             remarkPlugins={[remarkBreaks]}
             components={{
@@ -79,5 +79,5 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }

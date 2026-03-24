@@ -1,20 +1,20 @@
-import { useEffect, useRef } from "react"
-import { ScrollArea } from "@workspace/ui/components/scroll-area"
-import { useChat } from "@/hooks/useChat"
-import { useModels } from "@/hooks/useModels"
-import { MessageBubble } from "./MessageBubble"
-import { ChatInput } from "./ChatInput"
+import { useEffect, useRef } from 'react';
+import { ScrollArea } from '@workspace/ui/components/scroll-area';
+import { useChat } from '@/hooks/useChat';
+import { useModels } from '@/hooks/useModels';
+import { MessageBubble } from './MessageBubble';
+import { ChatInput } from './ChatInput';
 
 export function Chat() {
-  const { messages, sendMessage, isStreaming, error, stop } = useChat()
-  const { data: models } = useModels()
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const { messages, sendMessage, isStreaming, error, stop } = useChat();
+  const { data: models } = useModels();
+  const bottomRef = useRef<HTMLDivElement>(null);
 
-  const activeModel = models?.[0]?.id ?? "LM Studio"
+  const activeModel = models?.[0]?.id ?? 'LM Studio';
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   return (
     <div className="flex h-svh flex-col">
@@ -42,5 +42,5 @@ export function Chat() {
 
       <ChatInput onSend={sendMessage} onStop={stop} isStreaming={isStreaming} />
     </div>
-  )
+  );
 }

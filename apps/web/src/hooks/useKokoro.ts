@@ -17,7 +17,7 @@ worker.onmessage = (e) => {
 
 worker.onerror = (e) => console.error('Worker error:', e);
 
-worker.postMessage({ type: 'init' }); // init immediately at module load
+worker.postMessage({ type: 'init' });
 
 export const useKokoro = (voice = 'af_nicole') => {
   const [ready, setReady] = useState(false);

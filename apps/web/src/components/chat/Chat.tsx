@@ -18,7 +18,7 @@ export function Chat() {
 
   return (
     <div className="flex h-svh flex-col">
-      <header className="fixed top-0 z-1 w-full border-b bg-black px-4 py-3">
+      <header className="fixed top-0 z-1 w-full border-b bg-black/2.5 px-4 py-3">
         <h1 className="text-sm font-medium">Chat</h1>
         <p className="text-xs text-muted-foreground">{activeModel}</p>
       </header>

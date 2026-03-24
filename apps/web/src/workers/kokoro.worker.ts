@@ -1,6 +1,6 @@
 import { KokoroTTS } from 'kokoro-js';
 
-const supportsWebGPU = 'gpu' in navigator;
+const supportsWebGPU = 'gpu' in self.navigator;
 
 let tts: KokoroTTS | null = null;
 
@@ -11,7 +11,7 @@ self.onmessage = async (e) => {
     tts = await KokoroTTS.from_pretrained(
       'onnx-community/Kokoro-82M-v1.0-ONNX',
       {
-        dtype: supportsWebGPU ? 'fp32' : 'q4',
+        dtype: supportsWebGPU ? 'fp32' : 'q8',
         device: supportsWebGPU ? 'webgpu' : 'wasm',
         progress_callback: (progress) => console.log(progress),
       }

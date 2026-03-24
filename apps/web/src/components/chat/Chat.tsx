@@ -12,7 +12,7 @@ import { useAutoSpeak } from '@/hooks/useAutoSpeak';
 export function Chat() {
   const { messages, sendMessage, isStreaming, error, stop } = useChat();
   const { enqueue, ready, muted, toggleMute, activeSentence, activeMessageId } =
-    useKokoro('af_nicole');
+    useKokoro('af_aoede');
   const { data: models } = useModels();
   const bottomRef = useRef<HTMLDivElement>(null);
 

@@ -10,7 +10,7 @@ import { LoaderCircle, Play } from 'lucide-react';
 
 export function Chat() {
   const { messages, sendMessage, isStreaming, error, stop } = useChat();
-  const { speak, ready, speaking } = useKokoro('af_nicole');
+  const { speak, ready, speaking } = useKokoro('af_aoede');
   const { data: models } = useModels();
   const bottomRef = useRef<HTMLDivElement>(null);
 

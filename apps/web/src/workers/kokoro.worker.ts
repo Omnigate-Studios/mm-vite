@@ -36,6 +36,7 @@ const queue: {
   voice: Voice;
   rawText: string;
   messageId: string;
+  startIndex: number;
 }[] = [];
 let processing = false;
 
@@ -43,11 +44,11 @@ async function processQueue() {
   if (processing) return;
   processing = true;
   while (queue.length > 0) {
-    const { text, voice, rawText, messageId } = queue.shift()!;
+    const { text, voice, rawText, messageId, startIndex } = queue.shift()!;
     const audio = await tts!.generate(text, { voice });
     const wav = audio.toWav();
     self.postMessage(
-      { type: 'chunk', wav, sentence: rawText, messageId },
+      { type: 'chunk', wav, sentence: rawText, messageId, startIndex },
       { transfer: [wav] }
     );
   }
@@ -56,7 +57,7 @@ async function processQueue() {
 }
 
 self.onmessage = async (e) => {
-  const { type, text, rawText, voice, messageId } = e.data;
+  const { type, text, rawText, voice, messageId, startIndex } = e.data;
 
   if (type === 'init') {
     tts = await KokoroTTS.from_pretrained(
@@ -71,7 +72,7 @@ self.onmessage = async (e) => {
 
   if (type === 'generate') {
     if (!tts) return;
-    queue.push({ text, voice, rawText, messageId });
+    queue.push({ text, voice, rawText, messageId, startIndex });
     processQueue();
   }
 };

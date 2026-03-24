@@ -9,16 +9,21 @@ const worker = new Worker(
 let isReady = false;
 let onReadyCallback: (() => void) | null = null;
 let onChunkCallback:
-  | ((wav: ArrayBuffer, sentence: string, messageId: string) => void)
+  | ((
+      wav: ArrayBuffer,
+      sentence: string,
+      messageId: string,
+      startIndex: number
+    ) => void)
   | null = null;
 
 worker.onmessage = (e) => {
-  const { type, wav, sentence, messageId } = e.data;
+  const { type, wav, sentence, messageId, startIndex } = e.data;
   if (type === 'ready') {
     isReady = true;
     onReadyCallback?.();
   }
-  if (type === 'chunk') onChunkCallback?.(wav, sentence, messageId);
+  if (type === 'chunk') onChunkCallback?.(wav, sentence, messageId, startIndex);
 };
 
 worker.onerror = (e) => console.error('Worker error:', e);
@@ -30,9 +35,10 @@ export const useKokoro = (voice = 'af_nicole') => {
   const [muted, setMuted] = useState(false);
   const [activeSentence, setActiveSentence] = useState<string | null>(null);
   const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
+  const [activeStartIndex, setActiveStartIndex] = useState<number>(-1);
   const mutedRef = useRef(false);
   const audioQueue = useRef<
-    { url: string; sentence: string; messageId: string }[]
+    { url: string; sentence: string; messageId: string; startIndex: number }[]
   >([]);
   const isPlaying = useRef(false);
   const playNextRef = useRef<() => void>(() => {});
@@ -44,13 +50,16 @@ export const useKokoro = (voice = 'af_nicole') => {
         setSpeaking(false);
         setActiveSentence(null);
         setActiveMessageId(null);
+        setActiveStartIndex(-1);
         return;
       }
       isPlaying.current = true;
       setSpeaking(true);
-      const { url, sentence, messageId } = audioQueue.current.shift()!;
+      const { url, sentence, messageId, startIndex } =
+        audioQueue.current.shift()!;
       setActiveSentence(sentence);
       setActiveMessageId(messageId);
+      setActiveStartIndex(startIndex);
       const el = new Audio(url);
       el.muted = mutedRef.current;
       el.onended = () => {
@@ -61,23 +70,26 @@ export const useKokoro = (voice = 'af_nicole') => {
     };
 
     onReadyCallback = () => setReady(true);
-    onChunkCallback = (wav, sentence, messageId) => {
+    onChunkCallback = (wav, sentence, messageId, startIndex) => {
       const blob = new Blob([wav], { type: 'audio/wav' });
       const url = URL.createObjectURL(blob);
-      audioQueue.current.push({ url, sentence, messageId });
+      audioQueue.current.push({ url, sentence, messageId, startIndex });
       if (!isPlaying.current) playNextRef.current();
     };
   }, []);
 
   const enqueue = useCallback(
-    (text: string, messageId: string) => {
+    (text: string, messageId: string, startIndex: number) => {
       if (!ready) return;
+      const cleaned = stripAsterisks(text);
+      if (!cleaned.trim()) return;
       worker.postMessage({
         type: 'generate',
-        text: stripAsterisks(text),
+        text: cleaned,
         rawText: text,
         voice,
         messageId,
+        startIndex,
       });
     },
     [ready, voice]
@@ -96,5 +108,6 @@ export const useKokoro = (voice = 'af_nicole') => {
     toggleMute,
     activeSentence,
     activeMessageId,
+    activeStartIndex,
   };
 };

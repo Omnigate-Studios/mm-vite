@@ -17,6 +17,7 @@ interface MessageBubbleProps {
   message: Message;
   activeSentence?: string | null;
   activeMessageId?: string | null;
+  activeStartIndex?: number;
 }
 
 const roleConfig: Record<
@@ -41,11 +42,14 @@ function Markdown({ children }: { children?: ReactNode }) {
   return <span className="block">{children}</span>;
 }
 
-function withHighlight(content: string, activeSentence: string) {
-  const idx = content.indexOf(activeSentence);
-  if (idx === -1) return content;
-  const before = content.slice(0, idx);
-  const after = content.slice(idx + activeSentence.length);
+function withHighlight(
+  content: string,
+  activeSentence: string,
+  startIndex: number
+) {
+  if (startIndex === -1) return content;
+  const before = content.slice(0, startIndex);
+  const after = content.slice(startIndex + activeSentence.length);
   return `${before}<mark>${activeSentence}</mark>${after}`;
 }
 
@@ -53,9 +57,13 @@ export function MessageBubble({
   message,
   activeSentence,
   activeMessageId,
+  activeStartIndex = -1,
 }: MessageBubbleProps) {
   const { icon, label, align, bubble } = roleConfig[message.role];
-  const isActive = activeMessageId === message.id && !!activeSentence;
+  const isActive =
+    activeMessageId === message.id &&
+    !!activeSentence &&
+    activeStartIndex !== -1;
 
   const classes = [
     '[&_em]:italic',
@@ -98,7 +106,11 @@ export function MessageBubble({
             }}
           >
             {isActive
-              ? withHighlight(message.content, activeSentence!)
+              ? withHighlight(
+                  message.content,
+                  activeSentence!,
+                  activeStartIndex
+                )
               : message.content}
           </ReactMarkdown>
         </div>

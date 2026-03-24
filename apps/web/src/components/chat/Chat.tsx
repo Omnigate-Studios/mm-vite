@@ -11,8 +11,15 @@ import { useAutoSpeak } from '@/hooks/useAutoSpeak';
 
 export function Chat() {
   const { messages, sendMessage, isStreaming, error, stop } = useChat();
-  const { enqueue, ready, muted, toggleMute, activeSentence, activeMessageId } =
-    useKokoro('af_aoede');
+  const {
+    enqueue,
+    ready,
+    muted,
+    toggleMute,
+    activeSentence,
+    activeMessageId,
+    activeStartIndex,
+  } = useKokoro('af_aoede');
   const { data: models } = useModels();
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -62,6 +69,7 @@ export function Chat() {
                 message={msg}
                 activeSentence={activeSentence}
                 activeMessageId={activeMessageId}
+                activeStartIndex={activeStartIndex}
               />
             </div>
           ))}

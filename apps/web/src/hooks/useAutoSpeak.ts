@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 export const useAutoSpeak = (
   messages: Message[],
   isStreaming: boolean,
-  enqueue: (text: string, messageId: string) => void,
+  enqueue: (text: string, messageId: string, startIndex: number) => void,
   ready: boolean
 ) => {
   const spokenUpTo = useRef(0);
@@ -29,17 +29,25 @@ export const useAutoSpeak = (
     if (!isStreaming) {
       if (unspoken.trim() && !finalFlushed.current) {
         finalFlushed.current = true;
-        enqueue(unspoken, last.id);
+        const remaining = unspoken.match(/[^.!?\n]+[.!?]+|[^.!?\n]*\n+/g) ?? [];
+        let offset = spokenUpTo.current;
+        for (const sentence of remaining) {
+          enqueue(sentence, last.id, offset);
+          offset += sentence.length;
+        }
+        const alreadyCovered = remaining.reduce((acc, s) => acc + s.length, 0);
+        const leftover = unspoken.slice(alreadyCovered).trim();
+        if (leftover) enqueue(leftover, last.id, offset);
         spokenUpTo.current = content.length;
       }
       return;
     }
 
-    const sentences = unspoken.match(/[^.!?]+[.!?]+/g);
-    if (!sentences) return;
+    const sentences = unspoken.match(/[^.!?\n]+[.!?]+|[^.!?\n]*\n+/g) ?? [];
+    if (!sentences.length) return;
 
     for (const sentence of sentences) {
-      enqueue(sentence, last.id);
+      enqueue(sentence, last.id, spokenUpTo.current);
       spokenUpTo.current += sentence.length;
     }
   }, [messages, isStreaming, ready, enqueue]);

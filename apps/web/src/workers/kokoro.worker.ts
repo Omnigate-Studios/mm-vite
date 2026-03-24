@@ -45,7 +45,7 @@ async function processQueue() {
   processing = true;
   while (queue.length > 0) {
     const { text, voice, rawText, messageId, startIndex } = queue.shift()!;
-    const audio = await tts!.generate(text, { voice });
+    const audio = await tts!.generate(text, { voice, speed: 1.25 });
     const wav = audio.toWav();
     self.postMessage(
       { type: 'chunk', wav, sentence: rawText, messageId, startIndex },
@@ -63,7 +63,7 @@ self.onmessage = async (e) => {
     tts = await KokoroTTS.from_pretrained(
       'onnx-community/Kokoro-82M-v1.0-ONNX',
       {
-        dtype: 'q8',
+        dtype: 'q4',
         device: 'wasm',
       }
     );

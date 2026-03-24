@@ -15,17 +15,23 @@ export function Chat() {
     enqueue,
     ready,
     muted,
+    speakAs,
     toggleMute,
     activeSentence,
     activeMessageId,
     activeStartIndex,
-  } = useKokoro('af_aoede');
+  } = useKokoro('af_bella');
   const { data: models } = useModels();
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const activeModel = models?.[0]?.id ?? 'LM Studio';
 
   useAutoSpeak(messages, isStreaming, enqueue, ready);
+
+  const handleSend = (content: string) => {
+    sendMessage(content);
+    speakAs(content, 'bm_george');
+  };
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -80,7 +86,7 @@ export function Chat() {
         </div>
       </ScrollArea>
 
-      <ChatInput onSend={sendMessage} onStop={stop} isStreaming={isStreaming} />
+      <ChatInput onSend={handleSend} onStop={stop} isStreaming={isStreaming} />
     </div>
   );
 }

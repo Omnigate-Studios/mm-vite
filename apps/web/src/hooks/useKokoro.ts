@@ -29,7 +29,7 @@ worker.onmessage = (e) => {
 worker.onerror = (e) => console.error('Worker error:', e);
 worker.postMessage({ type: 'init' });
 
-export const useKokoro = (voice = 'af_nicole') => {
+export const useKokoro = (voice = 'af_heart') => {
   const [ready, setReady] = useState(isReady);
   const [speaking, setSpeaking] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -82,7 +82,20 @@ export const useKokoro = (voice = 'af_nicole') => {
     (text: string, messageId: string, startIndex: number) => {
       if (!ready) return;
       const cleaned = stripAsterisks(text);
-      if (!cleaned.trim()) return;
+      if (!cleaned.trim()) {
+        const actionText = text.replace(/\*([^*]*)\*/g, '$1').trim();
+        if (actionText) {
+          worker.postMessage({
+            type: 'generate',
+            text: actionText,
+            rawText: text,
+            voice: 'bm_lewis',
+            messageId,
+            startIndex,
+          });
+        }
+        return;
+      }
       worker.postMessage({
         type: 'generate',
         text: cleaned,
@@ -100,8 +113,26 @@ export const useKokoro = (voice = 'af_nicole') => {
     setMuted(mutedRef.current);
   };
 
+  const speakAs = useCallback(
+    (text: string, voice: string) => {
+      if (!ready) return;
+      const cleaned = stripAsterisks(text);
+      if (!cleaned.trim()) return;
+      worker.postMessage({
+        type: 'generate',
+        text: cleaned,
+        rawText: text,
+        voice,
+        messageId: '__user__',
+        startIndex: -1,
+      });
+    },
+    [ready]
+  );
+
   return {
     enqueue,
+    speakAs,
     ready,
     speaking,
     muted,

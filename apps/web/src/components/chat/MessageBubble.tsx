@@ -91,7 +91,7 @@ export function MessageBubble({
             components={{
               p: Markdown,
               mark: ({ children }) => (
-                <mark className="rounded bg-primary/20 font-bold text-foreground not-italic">
+                <mark className="rounded bg-primary/20 text-foreground not-italic">
                   {children}
                 </mark>
               ),

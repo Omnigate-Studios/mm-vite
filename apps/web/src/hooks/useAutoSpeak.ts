@@ -23,7 +23,7 @@ export const useAutoSpeak = (
       finalFlushed.current = false;
     }
 
-    const content = last.content; // raw
+    const content = last.content;
     const unspoken = content.slice(spokenUpTo.current);
 
     if (!isStreaming) {

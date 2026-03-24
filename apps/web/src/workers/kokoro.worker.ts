@@ -1,5 +1,3 @@
-import { KokoroTTS } from 'kokoro-js';
-
 type Voice =
   | 'af_heart'
   | 'af_alloy'
@@ -30,29 +28,35 @@ type Voice =
   | 'bm_daniel'
   | 'bm_fable'
   | undefined;
+import { KokoroTTS } from 'kokoro-js';
 
 let tts: KokoroTTS | null = null;
-const queue: { text: string; voice: Voice }[] = [];
+const queue: {
+  text: string;
+  voice: Voice;
+  rawText: string;
+  messageId: string;
+}[] = [];
 let processing = false;
 
 async function processQueue() {
   if (processing) return;
   processing = true;
   while (queue.length > 0) {
-    const { text, voice } = queue.shift()!;
-    const sentences = text.match(/[^.!?]+[.!?]+/g) ?? [text];
-    for (const sentence of sentences) {
-      const audio = await tts!.generate(sentence.trim(), { voice });
-      const wav = audio.toWav();
-      self.postMessage({ type: 'chunk', wav }, { transfer: [wav] });
-    }
+    const { text, voice, rawText, messageId } = queue.shift()!;
+    const audio = await tts!.generate(text, { voice });
+    const wav = audio.toWav();
+    self.postMessage(
+      { type: 'chunk', wav, sentence: rawText, messageId },
+      { transfer: [wav] }
+    );
   }
   processing = false;
   self.postMessage({ type: 'done' });
 }
 
 self.onmessage = async (e) => {
-  const { type, text, voice } = e.data;
+  const { type, text, rawText, voice, messageId } = e.data;
 
   if (type === 'init') {
     tts = await KokoroTTS.from_pretrained(
@@ -67,7 +71,7 @@ self.onmessage = async (e) => {
 
   if (type === 'generate') {
     if (!tts) return;
-    queue.push({ text, voice });
+    queue.push({ text, voice, rawText, messageId });
     processQueue();
   }
 };

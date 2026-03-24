@@ -40,14 +40,14 @@ function Markdown({ children }: { children?: ReactNode }) {
 
 export function MessageBubble({ message }: MessageBubbleProps) {
   const { icon, label, align, bubble } = roleConfig[message.role]
-  const { em, code, ol, ul, p, pre } = {
-    em: "[&_em]:italic",
-    code: "[&_code]:rounded [&_code]:bg-black/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[0.9em]",
-    ol: "[&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5",
-    ul: "[&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5",
-    p: "[&_p]:mb-2 [&_p]:last:mb-0",
-    pre: "[&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-black/10 [&_pre]:p-3",
-  }
+  const classes = [
+    "[&_em]:italic",
+    "[&_code]:rounded [&_code]:bg-black/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[0.9em]",
+    "[&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5",
+    "[&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5",
+    "[&_p]:mb-2 [&_p]:last:mb-0",
+    "[&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-black/10 [&_pre]:p-3",
+  ]
 
   return (
     <div
@@ -67,17 +67,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           bubble
         )}
       >
-        <div
-          className={cn(
-            "flex flex-col gap-4 wrap-break-word",
-            em,
-            code,
-            ol,
-            ul,
-            p,
-            pre
-          )}
-        >
+        <div className={cn("flex flex-col gap-4 wrap-break-word", ...classes)}>
           <ReactMarkdown
             remarkPlugins={[remarkBreaks]}
             components={{

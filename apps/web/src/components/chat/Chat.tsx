@@ -35,7 +35,7 @@ export function Chat() {
             </p>
           )}
           {messages.map((msg) => (
-            <div key={msg.id}>
+            <div className="flex flex-col gap-2" key={msg.id}>
               <MessageBubble key={msg.id} message={msg} />
               {msg.role !== 'user' && (
                 <Button
@@ -44,7 +44,7 @@ export function Chat() {
                   variant="secondary"
                   size="icon"
                 >
-                  {!ready || speaking ? (
+                  {!ready || speaking || isStreaming ? (
                     <LoaderCircle className="animate-spin" />
                   ) : (
                     <Play />

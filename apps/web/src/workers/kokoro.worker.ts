@@ -9,7 +9,7 @@ self.onmessage = async (e) => {
     tts = await KokoroTTS.from_pretrained(
       'onnx-community/Kokoro-82M-v1.0-ONNX',
       {
-        dtype: 'q8',
+        dtype: 'q4',
         device: 'wasm',
         progress_callback: (progress) => console.log(progress),
       }

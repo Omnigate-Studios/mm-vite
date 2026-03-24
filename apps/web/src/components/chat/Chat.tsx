@@ -4,9 +4,13 @@ import { useChat } from '@/hooks/useChat';
 import { useModels } from '@/hooks/useModels';
 import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
+import { useKokoro } from '@/hooks/useKokoro';
+import { Button } from '@workspace/ui/components/button';
+import { LoaderCircle, Play } from 'lucide-react';
 
 export function Chat() {
   const { messages, sendMessage, isStreaming, error, stop } = useChat();
+  const { speak, ready, speaking } = useKokoro('af');
   const { data: models } = useModels();
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -31,7 +35,23 @@ export function Chat() {
             </p>
           )}
           {messages.map((msg) => (
-            <MessageBubble key={msg.id} message={msg} />
+            <>
+              <MessageBubble key={msg.id} message={msg} />
+              {msg.role !== 'user' && (
+                <Button
+                  onClick={() => speak(msg.content)}
+                  disabled={!ready || speaking || isStreaming}
+                  variant="secondary"
+                  size="icon"
+                >
+                  {!ready || speaking ? (
+                    <LoaderCircle className="animate-spin" />
+                  ) : (
+                    <Play />
+                  )}
+                </Button>
+              )}
+            </>
           ))}
           {error && (
             <p className="text-center text-xs text-destructive">{error}</p>

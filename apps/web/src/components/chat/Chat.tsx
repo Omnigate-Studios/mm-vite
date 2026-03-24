@@ -1,3 +1,4 @@
+// components/Chat.tsx
 import { useEffect, useRef } from 'react';
 import { ScrollArea } from '@workspace/ui/components/scroll-area';
 import { useChat } from '@/hooks/useChat';
@@ -6,15 +7,18 @@ import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
 import { useKokoro } from '@/hooks/useKokoro';
 import { Button } from '@workspace/ui/components/button';
-import { LoaderCircle, Play } from 'lucide-react';
+import { LoaderCircle, Volume2, VolumeX } from 'lucide-react';
+import { useAutoSpeak } from '@/hooks/useAutoSpeak';
 
 export function Chat() {
   const { messages, sendMessage, isStreaming, error, stop } = useChat();
-  const { speak, ready, speaking } = useKokoro('af_aoede');
+  const { enqueue, ready, muted, toggleMute } = useKokoro('af_aoede');
   const { data: models } = useModels();
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const activeModel = models?.[0]?.id ?? 'LM Studio';
+
+  useAutoSpeak(messages, isStreaming, enqueue, ready);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -23,8 +27,26 @@ export function Chat() {
   return (
     <div className="flex h-svh flex-col">
       <header className="fixed top-0 z-1 w-full border-b bg-black/2.5 px-4 py-3">
-        <h1 className="text-sm font-medium">Chat</h1>
-        <p className="text-xs text-muted-foreground">{activeModel}</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-sm font-medium">Chat</h1>
+            <p className="text-xs text-muted-foreground">{activeModel}</p>
+          </div>
+          <Button
+            onClick={toggleMute}
+            variant="ghost"
+            size="icon"
+            disabled={!ready}
+          >
+            {!ready ? (
+              <LoaderCircle className="animate-spin" />
+            ) : muted ? (
+              <VolumeX />
+            ) : (
+              <Volume2 />
+            )}
+          </Button>
+        </div>
       </header>
 
       <ScrollArea className="flex-1 px-4 py-20">
@@ -36,21 +58,7 @@ export function Chat() {
           )}
           {messages.map((msg) => (
             <div className="flex flex-col gap-2" key={msg.id}>
-              <MessageBubble key={msg.id} message={msg} />
-              {msg.role !== 'user' && (
-                <Button
-                  onClick={() => speak(msg.content)}
-                  disabled={!ready || speaking || isStreaming}
-                  variant="secondary"
-                  size="icon"
-                >
-                  {!ready || speaking || isStreaming ? (
-                    <LoaderCircle className="animate-spin" />
-                  ) : (
-                    <Play />
-                  )}
-                </Button>
-              )}
+              <MessageBubble message={msg} />
             </div>
           ))}
           {error && (

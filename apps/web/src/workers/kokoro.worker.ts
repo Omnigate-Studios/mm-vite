@@ -9,7 +9,7 @@ self.onmessage = async (e) => {
     tts = await KokoroTTS.from_pretrained(
       'onnx-community/Kokoro-82M-v1.0-ONNX',
       {
-        dtype: 'q4',
+        dtype: 'q8',
         device: 'wasm',
         progress_callback: (progress) => console.log(progress),
       }
@@ -19,8 +19,12 @@ self.onmessage = async (e) => {
 
   if (type === 'generate') {
     if (!tts) return;
-    const audio = await tts.generate(text, { voice });
-    const wav = audio.toWav();
-    self.postMessage({ type: 'done', wav }, { transfer: [wav] });
+    const sentences = text.match(/[^.!?]+[.!?]+/g) ?? [text];
+    for (const sentence of sentences) {
+      const audio = await tts.generate(sentence.trim(), { voice });
+      const wav = audio.toWav();
+      self.postMessage({ type: 'chunk', wav }, { transfer: [wav] });
+    }
+    self.postMessage({ type: 'done' });
   }
 };

@@ -41,7 +41,11 @@ export const useKokoro = (voice = 'af_nicole') => {
     if (!workerRef.current || !ready || speaking) return;
     setSpeaking(true);
     const processedText = stripAsterisks(text);
-    workerRef.current.postMessage({ type: 'generate', processedText, voice });
+    workerRef.current.postMessage({
+      type: 'generate',
+      text: processedText,
+      voice,
+    });
   };
 
   return { speak, ready, speaking };

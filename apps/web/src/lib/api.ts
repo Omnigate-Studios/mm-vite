@@ -72,7 +72,7 @@ export async function* streamChat(
     { role: 'system', content: SYSTEM_PROMPT },
     ...messages,
   ];
-  const res = await fetch(`${API_BASE}/v1/chat/completions`, {
+  const res = await fetch(`${API_BASE}/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ messages: messagesWithSystem, stream: true }),

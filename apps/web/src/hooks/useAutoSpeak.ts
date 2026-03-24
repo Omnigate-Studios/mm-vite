@@ -29,7 +29,7 @@ export const useAutoSpeak = (
     if (!isStreaming) {
       if (unspoken.trim() && !finalFlushed.current) {
         finalFlushed.current = true;
-        enqueue(unspoken.trim(), last.id);
+        enqueue(unspoken, last.id);
         spokenUpTo.current = content.length;
       }
       return;
@@ -39,7 +39,7 @@ export const useAutoSpeak = (
     if (!sentences) return;
 
     for (const sentence of sentences) {
-      enqueue(sentence.trim(), last.id);
+      enqueue(sentence, last.id);
       spokenUpTo.current += sentence.length;
     }
   }, [messages, isStreaming, ready, enqueue]);

@@ -11,7 +11,6 @@ self.onmessage = async (e) => {
       {
         dtype: 'q8',
         device: 'wasm',
-        progress_callback: (progress) => console.log(progress),
       }
     );
     self.postMessage({ type: 'ready' });

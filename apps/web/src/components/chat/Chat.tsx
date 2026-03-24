@@ -35,7 +35,7 @@ export function Chat() {
             </p>
           )}
           {messages.map((msg) => (
-            <>
+            <div key={msg.id}>
               <MessageBubble key={msg.id} message={msg} />
               {msg.role !== 'user' && (
                 <Button
@@ -51,7 +51,7 @@ export function Chat() {
                   )}
                 </Button>
               )}
-            </>
+            </div>
           ))}
           {error && (
             <p className="text-center text-xs text-destructive">{error}</p>

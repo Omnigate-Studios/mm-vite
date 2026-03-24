@@ -1,19 +1,19 @@
 import { stripAsterisks } from '@/utils';
 import { useEffect, useRef, useState } from 'react';
 
+const worker = new Worker(
+  new URL('../workers/kokoro.worker.ts', import.meta.url),
+  {
+    type: 'module',
+  }
+);
+
 export const useKokoro = (voice = 'af_nicole') => {
   const workerRef = useRef<Worker | null>(null);
   const [ready, setReady] = useState(false);
   const [speaking, setSpeaking] = useState(false);
 
   useEffect(() => {
-    const worker = new Worker(
-      new URL('../workers/kokoro.worker.ts', import.meta.url),
-      {
-        type: 'module',
-      }
-    );
-
     worker.onmessage = (e) => {
       const { type, wav } = e.data;
 

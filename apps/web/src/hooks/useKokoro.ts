@@ -1,5 +1,5 @@
 import { stripAsterisks } from '@/utils';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const worker = new Worker(
   new URL('../workers/kokoro.worker.ts', import.meta.url),
@@ -67,12 +67,18 @@ export const useKokoro = (voice = 'af_nicole') => {
     };
   }, []);
 
-  const enqueue = (text: string, messageId: string) => {
-    if (!ready) return;
-    const cleaned = stripAsterisks(text);
-    sentenceQueue.current.push({ text: cleaned, messageId });
-    worker.postMessage({ type: 'generate', text: cleaned, voice });
-  };
+  const enqueue = useCallback(
+    (text: string, messageId: string) => {
+      if (!ready) return;
+      sentenceQueue.current.push({ text, messageId });
+      worker.postMessage({
+        type: 'generate',
+        text: stripAsterisks(text),
+        voice,
+      });
+    },
+    [ready, voice]
+  );
 
   const toggleMute = () => {
     mutedRef.current = !mutedRef.current;

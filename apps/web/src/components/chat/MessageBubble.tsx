@@ -1,3 +1,4 @@
+import { stripAsterisks } from '@/utils';
 import { cn } from '@workspace/ui/lib/utils';
 import { Bot, User } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -42,10 +43,11 @@ function Markdown({ children }: { children?: ReactNode }) {
 }
 
 function withHighlight(content: string, activeSentence: string) {
-  const idx = content.indexOf(activeSentence);
+  const stripped = stripAsterisks(content);
+  const idx = stripped.indexOf(activeSentence);
   if (idx === -1) return content;
-  const before = content.slice(0, idx);
-  const after = content.slice(idx + activeSentence.length);
+  const before = stripped.slice(0, idx);
+  const after = stripped.slice(idx + activeSentence.length);
   return `${before}<mark>${activeSentence}</mark>${after}`;
 }
 

@@ -1,6 +1,55 @@
 import { KokoroTTS } from 'kokoro-js';
 
+type Voice =
+  | 'af_heart'
+  | 'af_alloy'
+  | 'af_aoede'
+  | 'af_bella'
+  | 'af_jessica'
+  | 'af_kore'
+  | 'af_nicole'
+  | 'af_nova'
+  | 'af_river'
+  | 'af_sarah'
+  | 'af_sky'
+  | 'am_adam'
+  | 'am_echo'
+  | 'am_eric'
+  | 'am_fenrir'
+  | 'am_liam'
+  | 'am_michael'
+  | 'am_onyx'
+  | 'am_puck'
+  | 'am_santa'
+  | 'bf_emma'
+  | 'bf_isabella'
+  | 'bm_george'
+  | 'bm_lewis'
+  | 'bf_alice'
+  | 'bf_lily'
+  | 'bm_daniel'
+  | 'bm_fable'
+  | undefined;
+
 let tts: KokoroTTS | null = null;
+const queue: { text: string; voice: Voice }[] = [];
+let processing = false;
+
+async function processQueue() {
+  if (processing) return;
+  processing = true;
+  while (queue.length > 0) {
+    const { text, voice } = queue.shift()!;
+    const sentences = text.match(/[^.!?]+[.!?]+/g) ?? [text];
+    for (const sentence of sentences) {
+      const audio = await tts!.generate(sentence.trim(), { voice });
+      const wav = audio.toWav();
+      self.postMessage({ type: 'chunk', wav }, { transfer: [wav] });
+    }
+  }
+  processing = false;
+  self.postMessage({ type: 'done' });
+}
 
 self.onmessage = async (e) => {
   const { type, text, voice } = e.data;
@@ -9,7 +58,7 @@ self.onmessage = async (e) => {
     tts = await KokoroTTS.from_pretrained(
       'onnx-community/Kokoro-82M-v1.0-ONNX',
       {
-        dtype: 'q4',
+        dtype: 'q8',
         device: 'wasm',
       }
     );
@@ -18,12 +67,7 @@ self.onmessage = async (e) => {
 
   if (type === 'generate') {
     if (!tts) return;
-    const sentences = text.match(/[^.!?]+[.!?]+/g) ?? [text];
-    for (const sentence of sentences) {
-      const audio = await tts.generate(sentence.trim(), { voice });
-      const wav = audio.toWav();
-      self.postMessage({ type: 'chunk', wav }, { transfer: [wav] });
-    }
-    self.postMessage({ type: 'done' });
+    queue.push({ text, voice });
+    processQueue();
   }
 };

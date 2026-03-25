@@ -113,8 +113,8 @@ function VRMModel({
   const blinkTimerRef = useRef(7);
   const blinkPhaseRef = useRef<'closing' | 'opening' | null>(null);
 
-  // positive = waiting for next glance, negative = glancing (counts down to 0)
   const glanceTimerRef = useRef(7);
+  const isGlancingRef = useRef(false);
   const glancePosRef = useRef(new Vector3());
   const gazeObjRef = useRef(new Object3D());
 
@@ -136,19 +136,19 @@ function VRMModel({
 
     if (!vrm?.lookAt) return;
 
-    // Glancing — timer positive = waiting, negative = glancing
+    // Glancing
     glanceTimerRef.current -= delta;
-    if (glanceTimerRef.current <= 0) {
-      if (glanceTimerRef.current > -GLANCE_DURATION) {
-        glancePosRef.current.copy(
-          GLANCE_POSITIONS[Math.floor(Math.random() * GLANCE_POSITIONS.length)]
-        );
-      } else {
-        glanceTimerRef.current = randomInterval(GLANCE_INTERVAL_MIN, GLANCE_INTERVAL_RANGE);
-      }
+    if (glanceTimerRef.current <= 0 && !isGlancingRef.current) {
+      isGlancingRef.current = true;
+      glanceTimerRef.current = GLANCE_DURATION;
+      glancePosRef.current.copy(
+        GLANCE_POSITIONS[Math.floor(Math.random() * GLANCE_POSITIONS.length)]
+      );
+    } else if (isGlancingRef.current && glanceTimerRef.current <= 0) {
+      isGlancingRef.current = false;
+      glanceTimerRef.current = randomInterval(GLANCE_INTERVAL_MIN, GLANCE_INTERVAL_RANGE);
     }
-    const isGlancing = glanceTimerRef.current < 0;
-    const gazeTarget = isGlancing ? glancePosRef.current : state.camera.position;
+    const gazeTarget = isGlancingRef.current ? glancePosRef.current : state.camera.position;
     gazeObjRef.current.position.lerp(gazeTarget, expDecay(GAZE_LERP_SPEED, delta));
 
     const em = vrm.expressionManager;

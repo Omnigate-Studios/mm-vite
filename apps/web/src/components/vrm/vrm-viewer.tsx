@@ -7,7 +7,7 @@ import {
   VRMLookAtQuaternionProxy,
 } from '@pixiv/three-vrm-animation';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { AnimationMixer, MathUtils, Vector3 } from 'three';
+import { AnimationMixer, MathUtils, Object3D, Vector3 } from 'three';
 import type { Lipsync } from 'wawa-lipsync';
 
 const DEFAULT_CAMERA = { position: [0.125, 1.25, 2] as const, fov: 30 };
@@ -21,6 +21,26 @@ const VISEME_MAP: Record<string, string> = {
   viseme_U: 'ou',
 };
 const VISEME_ENTRIES = Object.entries(VISEME_MAP);
+
+const BLINK_CLOSE_SPEED = 15;
+const BLINK_OPEN_SPEED = 8;
+const BLINK_INTERVAL_MIN = 5;
+const BLINK_INTERVAL_RANGE = 5;
+
+const GLANCE_DURATION = 2;
+const GLANCE_INTERVAL_MIN = 3.75;
+const GLANCE_INTERVAL_RANGE = 3.75;
+const GAZE_LERP_SPEED = 5;
+const VISEME_LERP_SPEED = 12;
+
+const GLANCE_POSITIONS = [
+  new Vector3(0.125, -0.85, 1.5),  // down
+  new Vector3(-3.125, 1.25, 1.5),  // left
+  new Vector3(3.375, 1.25, 1.5),   // right
+];
+
+const expDecay = (speed: number, delta: number) => 1 - Math.exp(-speed * delta);
+const randomInterval = (min: number, range: number) => min + Math.random() * range;
 
 function useVRM(url: string) {
   const { camera } = useThree();
@@ -90,28 +110,84 @@ function VRMModel({
   const vrm = useVRM(url);
   const mixerRef = useVRMAnimation(vrm, animationUrl, timeScale);
 
-  useFrame((_, delta) => {
+  const blinkTimerRef = useRef(7);
+  const blinkPhaseRef = useRef<'closing' | 'opening' | null>(null);
+
+  // positive = waiting for next glance, negative = glancing (counts down to 0)
+  const glanceTimerRef = useRef(7);
+  const glancePosRef = useRef(new Vector3());
+  const gazeObjRef = useRef(new Object3D());
+
+  useEffect(() => {
+    blinkTimerRef.current = randomInterval(BLINK_INTERVAL_MIN, BLINK_INTERVAL_RANGE);
+    glanceTimerRef.current = randomInterval(GLANCE_INTERVAL_MIN, GLANCE_INTERVAL_RANGE);
+  }, []);
+
+  useEffect(() => {
+    if (!vrm?.lookAt) return;
+    gazeObjRef.current.position.set(...DEFAULT_CAMERA.position);
+    // eslint-disable-next-line react-hooks/immutability
+    vrm.lookAt.target = gazeObjRef.current;
+  }, [vrm]);
+
+  useFrame((state, delta) => {
     mixerRef.current?.update(delta);
     vrm?.update(delta);
 
-    if (!vrm?.expressionManager) return;
+    if (!vrm?.lookAt) return;
+
+    // Glancing — timer positive = waiting, negative = glancing
+    glanceTimerRef.current -= delta;
+    if (glanceTimerRef.current <= 0) {
+      if (glanceTimerRef.current > -GLANCE_DURATION) {
+        glancePosRef.current.copy(
+          GLANCE_POSITIONS[Math.floor(Math.random() * GLANCE_POSITIONS.length)]
+        );
+      } else {
+        glanceTimerRef.current = randomInterval(GLANCE_INTERVAL_MIN, GLANCE_INTERVAL_RANGE);
+      }
+    }
+    const isGlancing = glanceTimerRef.current < 0;
+    const gazeTarget = isGlancing ? glancePosRef.current : state.camera.position;
+    gazeObjRef.current.position.lerp(gazeTarget, expDecay(GAZE_LERP_SPEED, delta));
+
+    const em = vrm.expressionManager;
+    if (!em) return;
+
+    // Blinking
+    blinkTimerRef.current -= delta;
+    const blinkValue = em.getValue('blink') ?? 0;
+    if (blinkTimerRef.current <= 0 && blinkPhaseRef.current === null) {
+      blinkPhaseRef.current = 'closing';
+    }
+    if (blinkPhaseRef.current === 'closing') {
+      const next = MathUtils.lerp(blinkValue, 1, expDecay(BLINK_CLOSE_SPEED, delta));
+      em.setValue('blink', next);
+      if (next > 0.99) {
+        em.setValue('blink', 1);
+        blinkPhaseRef.current = 'opening';
+      }
+    } else if (blinkPhaseRef.current === 'opening') {
+      const next = MathUtils.lerp(blinkValue, 0, expDecay(BLINK_OPEN_SPEED, delta));
+      em.setValue('blink', next);
+      if (next < 0.01) {
+        em.setValue('blink', 0);
+        blinkPhaseRef.current = null;
+        blinkTimerRef.current = randomInterval(BLINK_INTERVAL_MIN, BLINK_INTERVAL_RANGE);
+      }
+    }
+
     const ls = lipSync.current;
     if (!ls) return;
 
     ls.processAudio();
     const viseme = ls.viseme;
-    const lerpSpeed = 12;
-
-    VISEME_ENTRIES.forEach(([key, expr]) => {
-      const current = vrm.expressionManager!.getValue(expr) ?? 0;
+    const visemeDecay = expDecay(VISEME_LERP_SPEED, delta);
+    for (const [key, expr] of VISEME_ENTRIES) {
+      const current = em.getValue(expr) ?? 0;
       const target = key === viseme ? 1 : 0;
-      const next = MathUtils.lerp(
-        current,
-        target,
-        1 - Math.exp(-lerpSpeed * delta)
-      );
-      vrm.expressionManager!.setValue(expr, next);
-    });
+      em.setValue(expr, MathUtils.lerp(current, target, visemeDecay));
+    }
   });
 
   if (!vrm) return null;

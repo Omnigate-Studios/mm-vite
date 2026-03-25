@@ -27,7 +27,7 @@ export function ChatInput({ onSend, onStop, isStreaming }: ChatInputProps) {
   }
 
   return (
-    <div className="fixed bottom-0 z-1 w-full border-t bg-background px-4 py-3">
+    <div className="z-1 w-full border-t bg-background px-4 py-3">
       <div className="flex items-end gap-2">
         <Textarea
           ref={ref}

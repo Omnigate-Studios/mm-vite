@@ -50,7 +50,7 @@ export function Chat({
   }, [messages]);
 
   return (
-    <div className="flex h-svh flex-col">
+    <div className="flex h-svh flex-col justify-end">
       <header className="fixed top-0 z-1 w-full border-b bg-black/2.5 px-4 py-3">
         <div className="flex items-center justify-between">
           <div>
@@ -64,7 +64,7 @@ export function Chat({
       </header>
 
       <ScrollArea
-        className="z-1 flex-1 px-4 py-20"
+        className="z-1 max-h-[40vh] w-screen px-4"
         style={{
           maskImage: 'linear-gradient(to bottom, transparent 0%, black 50%)',
           WebkitMaskImage:

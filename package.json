@@ -10,6 +10,7 @@
     "typecheck": "turbo typecheck"
   },
   "devDependencies": {
+    "@types/three": "^0.183.1",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "turbo": "^2.8.17",
@@ -24,8 +25,13 @@
   ],
   "packageManager": "npm@10.9.6",
   "dependencies": {
+    "@pixiv/three-vrm": "^3.5.1",
+    "@pixiv/three-vrm-animation": "^3.5.1",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
     "kokoro-js": "^1.2.1",
     "lucide-react": "^1.6.0",
-    "rehype-raw": "^7.0.0"
+    "rehype-raw": "^7.0.0",
+    "three": "^0.183.2"
   }
 }

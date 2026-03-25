@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Canvas, useFrame, useLoader } from '@react-three/fiber';
+import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
 import { VRMLoaderPlugin, VRMUtils, type VRM } from '@pixiv/three-vrm';
 import {
   createVRMAnimationClip,
@@ -23,6 +23,7 @@ const VISEME_MAP: Record<string, string> = {
 const VISEME_ENTRIES = Object.entries(VISEME_MAP);
 
 function useVRM(url: string) {
+  const { camera } = useThree();
   const gltf = useLoader(GLTFLoader, url, (loader) => {
     loader.register((parser) => new VRMLoaderPlugin(parser));
   });
@@ -34,7 +35,12 @@ function useVRM(url: string) {
     if (vrm.meta?.metaVersion === '0') VRMUtils.rotateVRM0(vrm);
     VRMUtils.removeUnnecessaryVertices(vrm.scene);
     VRMUtils.combineSkeletons(vrm.scene);
-  }, [vrm]);
+    // eslint-disable-next-line react-hooks/immutability
+    if (vrm.lookAt) vrm.lookAt.target = camera;
+    return () => {
+      if (vrm.lookAt) vrm.lookAt.target = undefined;
+    };
+  }, [vrm, camera]);
 
   return vrm;
 }
@@ -79,7 +85,7 @@ function VRMModel({
   url: string;
   animationUrl: string;
   timeScale?: number;
-  lipSync: React.MutableRefObject<Lipsync | null>;
+  lipSync: React.RefObject<Lipsync | null>;
 }) {
   const vrm = useVRM(url);
   const mixerRef = useVRMAnimation(vrm, animationUrl, timeScale);

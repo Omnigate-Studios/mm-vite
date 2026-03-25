@@ -6,14 +6,13 @@ import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
 import { useKokoro } from '@/hooks/useKokoro';
 import { Button } from '@workspace/ui/components/button';
-import { LoaderCircle, Volume2, VolumeX } from 'lucide-react';
+import { Volume2, VolumeX } from 'lucide-react';
 import { useAutoSpeak } from '@/hooks/useAutoSpeak';
 
 export function Chat() {
   const { messages, sendMessage, isStreaming, error, stop } = useChat();
   const {
     enqueue,
-    ready,
     muted,
     speakAs,
     toggleMute,
@@ -26,7 +25,7 @@ export function Chat() {
 
   const activeModel = models?.[0]?.id ?? 'LM Studio';
 
-  useAutoSpeak(messages, isStreaming, enqueue, ready);
+  useAutoSpeak(messages, isStreaming, enqueue);
 
   const handleSend = (content: string) => {
     sendMessage(content);
@@ -45,19 +44,8 @@ export function Chat() {
             <h1 className="text-sm font-medium">Chat</h1>
             <p className="text-xs text-muted-foreground">{activeModel}</p>
           </div>
-          <Button
-            onClick={toggleMute}
-            variant="ghost"
-            size="icon"
-            disabled={!ready}
-          >
-            {!ready ? (
-              <LoaderCircle className="animate-spin" />
-            ) : muted ? (
-              <VolumeX />
-            ) : (
-              <Volume2 />
-            )}
+          <Button onClick={toggleMute} variant="ghost" size="icon">
+            {muted ? <VolumeX /> : <Volume2 />}
           </Button>
         </div>
       </header>

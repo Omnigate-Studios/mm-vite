@@ -1,36 +1,9 @@
 import { stripAsterisks } from '@/utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const worker = new Worker(
-  new URL('../workers/kokoro.worker.ts', import.meta.url),
-  { type: 'module' }
-);
-
-let isReady = false;
-let onReadyCallback: (() => void) | null = null;
-let onChunkCallback:
-  | ((
-      wav: ArrayBuffer,
-      sentence: string,
-      messageId: string,
-      startIndex: number
-    ) => void)
-  | null = null;
-
-worker.onmessage = (e) => {
-  const { type, wav, sentence, messageId, startIndex } = e.data;
-  if (type === 'ready') {
-    isReady = true;
-    onReadyCallback?.();
-  }
-  if (type === 'chunk') onChunkCallback?.(wav, sentence, messageId, startIndex);
-};
-
-worker.onerror = (e) => console.error('Worker error:', e);
-worker.postMessage({ type: 'init' });
+export const API_BASE = import.meta.env.VITE_API_BASE ?? '/api';
 
 export const useKokoro = (voice = 'af_heart') => {
-  const [ready, setReady] = useState(isReady);
   const [speaking, setSpeaking] = useState(false);
   const [muted, setMuted] = useState(false);
   const [activeSentence, setActiveSentence] = useState<string | null>(null);
@@ -38,10 +11,17 @@ export const useKokoro = (voice = 'af_heart') => {
   const [activeStartIndex, setActiveStartIndex] = useState<number>(-1);
   const mutedRef = useRef(false);
   const audioQueue = useRef<
-    { url: string; sentence: string; messageId: string; startIndex: number }[]
+    {
+      buffer: AudioBuffer;
+      sentence: string;
+      messageId: string;
+      startIndex: number;
+    }[]
   >([]);
   const isPlaying = useRef(false);
   const playNextRef = useRef<() => void>(() => {});
+  const audioCtx = useRef<AudioContext | null>(null);
+  const gainNode = useRef<GainNode | null>(null);
 
   useEffect(() => {
     playNextRef.current = () => {
@@ -55,85 +35,106 @@ export const useKokoro = (voice = 'af_heart') => {
       }
       isPlaying.current = true;
       setSpeaking(true);
-      const { url, sentence, messageId, startIndex } =
+      const { buffer, sentence, messageId, startIndex } =
         audioQueue.current.shift()!;
       setActiveSentence(sentence);
       setActiveMessageId(messageId);
       setActiveStartIndex(startIndex);
-      const el = new Audio(url);
-      el.muted = mutedRef.current;
-      el.onended = () => {
-        URL.revokeObjectURL(url);
-        playNextRef.current();
-      };
-      el.play();
-    };
-
-    onReadyCallback = () => setReady(true);
-    onChunkCallback = (wav, sentence, messageId, startIndex) => {
-      const blob = new Blob([wav], { type: 'audio/wav' });
-      const url = URL.createObjectURL(blob);
-      audioQueue.current.push({ url, sentence, messageId, startIndex });
-      if (!isPlaying.current) playNextRef.current();
+      const source = audioCtx.current!.createBufferSource();
+      source.buffer = buffer;
+      source.connect(gainNode.current!);
+      source.onended = () => playNextRef.current();
+      source.start();
     };
   }, []);
 
+  const fetchAndEnqueue = useCallback(
+    async (
+      text: string,
+      voiceId: string,
+      messageId: string,
+      startIndex: number
+    ) => {
+      try {
+        if (!audioCtx.current) {
+          audioCtx.current = new AudioContext();
+          gainNode.current = audioCtx.current.createGain();
+          gainNode.current.connect(audioCtx.current.destination);
+          gainNode.current.gain.value = mutedRef.current ? 0 : 1;
+        }
+        const response = await fetch(`${API_BASE}/tts/v1/audio/speech`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'kokoro',
+            input: text,
+            voice: voiceId,
+            response_format: 'wav',
+            speed: 1,
+            stream: false,
+          }),
+        });
+        if (!response.ok) {
+          const arrayBuffer = await response.arrayBuffer();
+          const errorText = new TextDecoder().decode(arrayBuffer);
+          console.log('raw response:', errorText);
+          console.log('audio buffer size:', arrayBuffer.byteLength);
+          const errText = new TextDecoder().decode(arrayBuffer);
+          throw new Error(`TTS error: ${errText}`);
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        const errorText = new TextDecoder().decode(arrayBuffer);
+        console.log('raw response:', errorText);
+        await audioCtx.current.resume();
+        const decoded = await audioCtx.current.decodeAudioData(arrayBuffer);
+        audioQueue.current.push({
+          buffer: decoded,
+          sentence: text,
+          messageId,
+          startIndex,
+        });
+        if (!isPlaying.current) playNextRef.current();
+      } catch (err) {
+        console.error('TTS fetch failed:', err);
+      }
+    },
+    []
+  );
+
   const enqueue = useCallback(
     (text: string, messageId: string, startIndex: number) => {
-      if (!ready) return;
       const cleaned = stripAsterisks(text);
       if (!cleaned.trim()) {
         const actionText = text.replace(/\*([^*]*)\*/g, '$1').trim();
-        if (actionText) {
-          worker.postMessage({
-            type: 'generate',
-            text: actionText,
-            rawText: text,
-            voice: 'bm_lewis',
-            messageId,
-            startIndex,
-          });
-        }
+        if (actionText)
+          fetchAndEnqueue(actionText, 'bm_lewis', messageId, startIndex);
         return;
       }
-      worker.postMessage({
-        type: 'generate',
-        text: cleaned,
-        rawText: text,
-        voice,
-        messageId,
-        startIndex,
-      });
+      fetchAndEnqueue(cleaned, voice, messageId, startIndex);
     },
-    [ready, voice]
+    [voice, fetchAndEnqueue]
+  );
+
+  const speakAs = useCallback(
+    (text: string, speakVoice: string) => {
+      const cleaned = stripAsterisks(text);
+      if (!cleaned.trim()) return;
+      fetchAndEnqueue(cleaned, speakVoice, '__user__', -1);
+    },
+    [fetchAndEnqueue]
   );
 
   const toggleMute = () => {
     mutedRef.current = !mutedRef.current;
     setMuted(mutedRef.current);
+    if (gainNode.current)
+      gainNode.current.gain.value = mutedRef.current ? 0 : 1;
   };
-
-  const speakAs = useCallback(
-    (text: string, voice: string) => {
-      if (!ready) return;
-      const cleaned = stripAsterisks(text);
-      if (!cleaned.trim()) return;
-      worker.postMessage({
-        type: 'generate',
-        text: cleaned,
-        rawText: text,
-        voice,
-        messageId: '__user__',
-        startIndex: -1,
-      });
-    },
-    [ready]
-  );
 
   return {
     enqueue,
     speakAs,
-    ready,
+    ready: true,
     speaking,
     muted,
     toggleMute,

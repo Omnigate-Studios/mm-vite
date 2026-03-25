@@ -4,16 +4,13 @@ import { useEffect, useRef } from 'react';
 export const useAutoSpeak = (
   messages: Message[],
   isStreaming: boolean,
-  enqueue: (text: string, messageId: string, startIndex: number) => void,
-  ready: boolean
+  enqueue: (text: string, messageId: string, startIndex: number) => void
 ) => {
   const spokenUpTo = useRef(0);
   const lastMessageId = useRef<string | null>(null);
   const finalFlushed = useRef(false);
 
   useEffect(() => {
-    if (!ready) return;
-
     const last = messages[messages.length - 1];
     if (!last || last.role !== 'assistant') return;
 
@@ -50,5 +47,5 @@ export const useAutoSpeak = (
       enqueue(sentence, last.id, spokenUpTo.current);
       spokenUpTo.current += sentence.length;
     }
-  }, [messages, isStreaming, ready, enqueue]);
+  }, [messages, isStreaming, enqueue]);
 };

@@ -126,9 +126,7 @@ export const useKokoro = (voice = 'af_heart') => {
       const cleaned = stripAsterisks(text);
       if (!cleaned.trim()) {
         const actionText = text.replace(/\*([^*]*)\*/g, '$1').trim();
-        if (actionText)
-          fetchAndEnqueue(actionText, 'bm_lewis', messageId, startIndex, false);
-        return;
+        if (actionText) return;
       }
       fetchAndEnqueue(cleaned, voice, messageId, startIndex, true);
     },

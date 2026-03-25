@@ -31,7 +31,7 @@ export const useAutoSpeak = (
         const remaining = unspoken.match(SENTENCE_RE) ?? [];
         let offset = spokenUpTo.current;
         for (const sentence of remaining) {
-          enqueue(sentence, last.id, offset);
+          if (sentence.trim()) enqueue(sentence, last.id, offset);
           offset += sentence.length;
         }
         const alreadyCovered = remaining.reduce((acc, s) => acc + s.length, 0);
@@ -46,7 +46,7 @@ export const useAutoSpeak = (
     if (!sentences.length) return;
 
     for (const sentence of sentences) {
-      enqueue(sentence, last.id, spokenUpTo.current);
+      if (sentence.trim()) enqueue(sentence, last.id, spokenUpTo.current);
       spokenUpTo.current += sentence.length;
     }
   }, [messages, isStreaming, enqueue]);

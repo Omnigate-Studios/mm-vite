@@ -14,6 +14,7 @@ export function Chat({
   kokoroProps: {
     enqueue: (text: string, messageId: string, startIndex: number) => void;
     speakAs: (text: string, speakVoice: string) => void;
+    cancelQueue: () => void;
     ready: boolean;
     speaking: boolean;
     muted: boolean;
@@ -28,6 +29,7 @@ export function Chat({
     enqueue,
     muted,
     speakAs,
+    cancelQueue,
     toggleMute,
     activeSentence,
     activeMessageId,
@@ -41,13 +43,14 @@ export function Chat({
   useAutoSpeak(messages, isStreaming, enqueue);
 
   const handleSend = (content: string) => {
+    cancelQueue();
     sendMessage(content);
     speakAs(content, 'bm_george');
   };
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages.length]);
 
   return (
     <div className="flex h-svh flex-col justify-end">
@@ -64,11 +67,11 @@ export function Chat({
       </header>
 
       <ScrollArea
-        className="z-1 max-h-[40vh] w-screen px-4"
+        className="z-1 max-h-[40vh] w-screen bg-background/50 px-4"
         style={{
-          maskImage: 'linear-gradient(to bottom, transparent 0%, black 50%)',
+          maskImage: 'linear-gradient(to bottom, transparent 0%, black 66%)',
           WebkitMaskImage:
-            'linear-gradient(to bottom, transparent 0%, black 50%)',
+            'linear-gradient(to bottom, transparent 0%, black 66%)',
         }}
       >
         <div className="flex flex-col gap-4">

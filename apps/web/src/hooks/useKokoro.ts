@@ -25,6 +25,8 @@ export const useKokoro = (voice = 'af_heart') => {
   const gainNode = useRef<GainNode | null>(null);
   const lipSync = useRef<Lipsync | null>(null);
   const fetchQueue = useRef<Promise<void>>(Promise.resolve());
+  const generationRef = useRef(0);
+  const abortFetchRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     playNextRef.current = () => {
@@ -74,7 +76,9 @@ export const useKokoro = (voice = 'af_heart') => {
       startIndex: number,
       useLipSync = true
     ) => {
+      const gen = generationRef.current;
       fetchQueue.current = fetchQueue.current.then(async () => {
+        if (gen !== generationRef.current) return;
         try {
           if (!audioCtx.current) {
             audioCtx.current = new AudioContext();
@@ -84,6 +88,7 @@ export const useKokoro = (voice = 'af_heart') => {
             lipSync.current = new Lipsync();
           }
           await audioCtx.current.resume();
+          abortFetchRef.current = new AbortController();
           const response = await fetch(`${API_BASE}/tts/v1/audio/speech`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -95,17 +100,17 @@ export const useKokoro = (voice = 'af_heart') => {
               speed: 1,
               stream: false,
             }),
+            signal: abortFetchRef.current.signal,
           });
           const arrayBuffer = await response.arrayBuffer();
           if (!response.ok) {
             const errText = new TextDecoder().decode(arrayBuffer);
             throw new Error(`TTS error: ${errText}`);
           }
+          if (gen !== generationRef.current) return;
           const blob = new Blob([arrayBuffer], { type: 'audio/wav' });
           const blobUrl = URL.createObjectURL(blob);
-          const decoded = await audioCtx.current.decodeAudioData(
-            arrayBuffer.slice(0)
-          );
+          const decoded = await audioCtx.current.decodeAudioData(arrayBuffer);
           audioQueue.current.push({
             buffer: decoded,
             blobUrl,
@@ -116,12 +121,24 @@ export const useKokoro = (voice = 'af_heart') => {
           });
           if (!isPlaying.current) playNextRef.current();
         } catch (err) {
+          if (err instanceof Error && err.name === 'AbortError') return;
           console.error('TTS fetch failed:', err);
         }
       });
     },
     []
   );
+
+  const cancelQueue = useCallback(() => {
+    generationRef.current++;
+    abortFetchRef.current?.abort();
+    audioQueue.current = [];
+    isPlaying.current = false;
+    setSpeaking(false);
+    setActiveSentence(null);
+    setActiveMessageId(null);
+    setActiveStartIndex(-1);
+  }, []);
 
   const enqueue = useCallback(
     (text: string, messageId: string, startIndex: number) => {
@@ -147,6 +164,7 @@ export const useKokoro = (voice = 'af_heart') => {
   return {
     enqueue,
     speakAs,
+    cancelQueue,
     ready: true,
     speaking,
     muted,

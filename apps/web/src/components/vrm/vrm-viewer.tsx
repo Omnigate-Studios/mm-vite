@@ -20,6 +20,7 @@ const VISEME_MAP: Record<string, string> = {
   viseme_O: 'oh',
   viseme_U: 'ou',
 };
+const VISEME_ENTRIES = Object.entries(VISEME_MAP);
 
 function useVRM(url: string) {
   const gltf = useLoader(GLTFLoader, url, (loader) => {
@@ -95,7 +96,7 @@ function VRMModel({
     const viseme = ls.viseme;
     const lerpSpeed = 12;
 
-    Object.entries(VISEME_MAP).forEach(([key, expr]) => {
+    VISEME_ENTRIES.forEach(([key, expr]) => {
       const current = vrm.expressionManager!.getValue(expr) ?? 0;
       const target = key === viseme ? 1 : 0;
       const next = MathUtils.lerp(

@@ -1,6 +1,6 @@
 import { cn } from '@workspace/ui/lib/utils';
 import { Bot, User } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { memo, useMemo, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkBreaks from 'remark-breaks';
@@ -22,7 +22,7 @@ interface MessageBubbleProps {
 
 const roleConfig: Record<
   MessageRole,
-  { icon: React.ReactNode; label: string; align: string; bubble: string }
+  { icon: ReactNode; label: string; align: string; bubble: string }
 > = {
   user: {
     icon: <User size={16} />,
@@ -42,6 +42,26 @@ function Markdown({ children }: { children?: ReactNode }) {
   return <span className="block">{children}</span>;
 }
 
+const REMARK_PLUGINS = [remarkBreaks];
+const REHYPE_PLUGINS = [rehypeRaw];
+const MD_COMPONENTS = {
+  p: Markdown,
+  mark: ({ children }: { children?: ReactNode }) => (
+    <mark className="rounded bg-primary/20 text-foreground not-italic">
+      {children}
+    </mark>
+  ),
+};
+
+const BUBBLE_CLASSES = [
+  '[&_em]:italic',
+  '[&_code]:rounded [&_code]:bg-black/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[0.9em]',
+  '[&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5',
+  '[&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5',
+  '[&_p]:mb-2 [&_p]:last:mb-0',
+  '[&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-black/10 [&_pre]:p-3',
+];
+
 function withHighlight(
   content: string,
   activeSentence: string,
@@ -53,68 +73,67 @@ function withHighlight(
   return `${before}<mark>${activeSentence}</mark>${after}`;
 }
 
-export function MessageBubble({
-  message,
-  activeSentence,
-  activeMessageId,
-  activeStartIndex = -1,
-}: MessageBubbleProps) {
-  const { icon, label, align, bubble } = roleConfig[message.role];
-  const isActive =
-    activeMessageId === message.id &&
-    !!activeSentence &&
-    activeStartIndex !== -1;
+export const MessageBubble = memo(
+  function MessageBubble({
+    message,
+    activeSentence,
+    activeMessageId,
+    activeStartIndex = -1,
+  }: MessageBubbleProps) {
+    const { icon, label, align, bubble } = roleConfig[message.role];
+    const isActive =
+      activeMessageId === message.id &&
+      !!activeSentence &&
+      activeStartIndex !== -1;
 
-  const classes = [
-    '[&_em]:italic',
-    '[&_code]:rounded [&_code]:bg-black/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[0.9em]',
-    '[&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5',
-    '[&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5',
-    '[&_p]:mb-2 [&_p]:last:mb-0',
-    '[&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-black/10 [&_pre]:p-3',
-  ];
+    const content = useMemo(
+      () =>
+        isActive
+          ? withHighlight(message.content, activeSentence!, activeStartIndex)
+          : message.content,
+      [isActive, message.content, activeSentence, activeStartIndex]
+    );
 
-  return (
-    <div
-      className={cn(
-        'flex max-w-[75%] flex-col gap-1',
-        align,
-        message.role === 'user' && 'self-end'
-      )}
-    >
-      <span className="flex items-center gap-1 px-1 text-xs text-muted-foreground">
-        {icon}
-        {label}
-      </span>
+    return (
       <div
         className={cn(
-          'max-w-[45vw] rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
-          bubble
+          'flex max-w-[75%] flex-col gap-1',
+          align,
+          message.role === 'user' && 'self-end'
         )}
       >
-        <div className={cn('flex flex-col gap-4 wrap-break-word', ...classes)}>
-          <ReactMarkdown
-            remarkPlugins={[remarkBreaks]}
-            rehypePlugins={[rehypeRaw]}
-            components={{
-              p: Markdown,
-              mark: ({ children }) => (
-                <mark className="rounded bg-primary/20 text-foreground not-italic">
-                  {children}
-                </mark>
-              ),
-            }}
-          >
-            {isActive
-              ? withHighlight(
-                  message.content,
-                  activeSentence!,
-                  activeStartIndex
-                )
-              : message.content}
-          </ReactMarkdown>
+        <span className="flex items-center gap-1 px-1 text-xs text-muted-foreground">
+          {icon}
+          {label}
+        </span>
+        <div
+          className={cn(
+            'max-w-[45vw] rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
+            bubble
+          )}
+        >
+          <div className={cn('flex flex-col gap-4 wrap-break-word', ...BUBBLE_CLASSES)}>
+            <ReactMarkdown
+              remarkPlugins={REMARK_PLUGINS}
+              rehypePlugins={REHYPE_PLUGINS}
+              components={MD_COMPONENTS}
+            >
+              {content}
+            </ReactMarkdown>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  },
+  (prev, next) => {
+    if (prev.message !== next.message) return false;
+    const wasActive = prev.activeMessageId === prev.message.id;
+    const isActive = next.activeMessageId === next.message.id;
+    if (!wasActive && !isActive) return true;
+    return (
+      prev.activeSentence === next.activeSentence &&
+      prev.activeMessageId === next.activeMessageId &&
+      prev.activeStartIndex === next.activeStartIndex
+    );
+  }
+);

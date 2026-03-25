@@ -22,6 +22,7 @@ export const useKokoro = (voice = 'af_heart') => {
   const playNextRef = useRef<() => void>(() => {});
   const audioCtx = useRef<AudioContext | null>(null);
   const gainNode = useRef<GainNode | null>(null);
+  const fetchQueue = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
     playNextRef.current = () => {
@@ -49,54 +50,45 @@ export const useKokoro = (voice = 'af_heart') => {
   }, []);
 
   const fetchAndEnqueue = useCallback(
-    async (
-      text: string,
-      voiceId: string,
-      messageId: string,
-      startIndex: number
-    ) => {
-      try {
-        if (!audioCtx.current) {
-          audioCtx.current = new AudioContext();
-          gainNode.current = audioCtx.current.createGain();
-          gainNode.current.connect(audioCtx.current.destination);
-          gainNode.current.gain.value = mutedRef.current ? 0 : 1;
-        }
-        const response = await fetch(`${API_BASE}/tts/v1/audio/speech`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'kokoro',
-            input: text,
-            voice: voiceId,
-            response_format: 'wav',
-            speed: 1,
-            stream: false,
-          }),
-        });
-        if (!response.ok) {
+    (text: string, voiceId: string, messageId: string, startIndex: number) => {
+      fetchQueue.current = fetchQueue.current.then(async () => {
+        try {
+          if (!audioCtx.current) {
+            audioCtx.current = new AudioContext();
+            gainNode.current = audioCtx.current.createGain();
+            gainNode.current.connect(audioCtx.current.destination);
+            gainNode.current.gain.value = mutedRef.current ? 0 : 1;
+          }
+          await audioCtx.current.resume();
+          const response = await fetch(`${API_BASE}/tts/v1/audio/speech`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: 'kokoro',
+              input: text,
+              voice: voiceId,
+              response_format: 'wav',
+              speed: 1,
+              stream: false,
+            }),
+          });
           const arrayBuffer = await response.arrayBuffer();
-          const errorText = new TextDecoder().decode(arrayBuffer);
-          console.log('raw response:', errorText);
-          console.log('audio buffer size:', arrayBuffer.byteLength);
-          const errText = new TextDecoder().decode(arrayBuffer);
-          throw new Error(`TTS error: ${errText}`);
+          if (!response.ok) {
+            const errText = new TextDecoder().decode(arrayBuffer);
+            throw new Error(`TTS error: ${errText}`);
+          }
+          const decoded = await audioCtx.current.decodeAudioData(arrayBuffer);
+          audioQueue.current.push({
+            buffer: decoded,
+            sentence: text,
+            messageId,
+            startIndex,
+          });
+          if (!isPlaying.current) playNextRef.current();
+        } catch (err) {
+          console.error('TTS fetch failed:', err);
         }
-        const arrayBuffer = await response.arrayBuffer();
-        const errorText = new TextDecoder().decode(arrayBuffer);
-        console.log('raw response:', errorText);
-        await audioCtx.current.resume();
-        const decoded = await audioCtx.current.decodeAudioData(arrayBuffer);
-        audioQueue.current.push({
-          buffer: decoded,
-          sentence: text,
-          messageId,
-          startIndex,
-        });
-        if (!isPlaying.current) playNextRef.current();
-      } catch (err) {
-        console.error('TTS fetch failed:', err);
-      }
+      });
     },
     []
   );

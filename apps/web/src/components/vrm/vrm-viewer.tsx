@@ -46,7 +46,7 @@ function useVRMAnimation(vrm: VRM | undefined, url: string, timeScale = 1) {
   });
 
   useEffect(() => {
-    if (!vrm) return;
+    if (!vrm?.lookAt) return;
     const vrmAnimation = vrma.userData.vrmAnimations?.[0];
     if (!vrmAnimation) return;
 

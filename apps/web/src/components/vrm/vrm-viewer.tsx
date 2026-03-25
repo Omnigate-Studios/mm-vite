@@ -46,6 +46,14 @@ function useVRMAnimation(vrm: VRM | undefined, url: string, timeScale = 1) {
 
   useEffect(() => {
     if (!vrm) return;
+    console.log(
+      'expressions:',
+      Object.keys(vrm.expressionManager?.expressionMap ?? {})
+    );
+  }, [vrm]);
+
+  useEffect(() => {
+    if (!vrm) return;
     const vrmAnimation = vrma.userData.vrmAnimations?.[0];
     if (!vrmAnimation) return;
 
@@ -87,13 +95,18 @@ function VRMModel({
 
     ls.processAudio();
     const viseme = ls.viseme;
+    const lerpSpeed = 12;
 
-    Object.values(VISEME_MAP).forEach((expr) => {
-      vrm.expressionManager?.setValue(expr, 0);
+    Object.entries(VISEME_MAP).forEach(([key, expr]) => {
+      const current = vrm.expressionManager!.getValue(expr) ?? 0;
+      const target = key === viseme ? 1 : 0;
+      const next = THREE.MathUtils.lerp(
+        current,
+        target,
+        1 - Math.exp(-lerpSpeed * delta)
+      );
+      vrm.expressionManager!.setValue(expr, next);
     });
-
-    const expr = VISEME_MAP[viseme];
-    if (expr) vrm.expressionManager.setValue(expr, 1);
   });
 
   if (!vrm) return null;

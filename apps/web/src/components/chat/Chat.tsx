@@ -63,7 +63,14 @@ export function Chat({
         </div>
       </header>
 
-      <ScrollArea className="flex-1 px-4 py-20">
+      <ScrollArea
+        className="z-1 flex-1 px-4 py-20"
+        style={{
+          maskImage: 'linear-gradient(to bottom, transparent 0%, black 50%)',
+          WebkitMaskImage:
+            'linear-gradient(to bottom, transparent 0%, black 50%)',
+        }}
+      >
         <div className="flex flex-col gap-4">
           {messages.length === 0 && (
             <p className="mt-8 text-center text-sm text-muted-foreground">

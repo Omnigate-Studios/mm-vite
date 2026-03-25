@@ -43,18 +43,24 @@ export const useKokoro = (voice = 'af_heart') => {
       const { buffer, blobUrl, useLipSync } = audioQueue.current.shift()!;
 
       if (useLipSync && lipSync.current) {
-        const audioEl = new Audio(blobUrl);
+        const audioEl = new Audio();
+        audioEl.src = blobUrl;
         lipSync.current.connectAudio(audioEl);
+        audioEl.onended = () => {
+          URL.revokeObjectURL(blobUrl);
+          playNextRef.current();
+        };
+        audioEl.play();
+      } else {
+        const source = audioCtx.current!.createBufferSource();
+        source.buffer = buffer;
+        source.connect(gainNode.current!);
+        source.onended = () => {
+          URL.revokeObjectURL(blobUrl);
+          playNextRef.current();
+        };
+        source.start();
       }
-
-      const source = audioCtx.current!.createBufferSource();
-      source.buffer = buffer;
-      source.connect(gainNode.current!);
-      source.onended = () => {
-        URL.revokeObjectURL(blobUrl);
-        playNextRef.current();
-      };
-      source.start();
     };
   }, []);
 

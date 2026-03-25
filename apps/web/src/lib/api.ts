@@ -5,7 +5,7 @@ export interface LMModel {
   object: string;
 }
 
-const DEFAULT_MODEL = 'cydonia-24b-v4.3@q4_k_m';
+const DEFAULT_MODEL = 'llama-3.2-1b-instruct';
 
 async function loadModel(identifier: string): Promise<void> {
   const res = await fetch(`${API_BASE}/v1/models/load`, {

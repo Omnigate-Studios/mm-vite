@@ -4,12 +4,25 @@ import { useChat } from '@/hooks/useChat';
 import { useModels } from '@/hooks/useModels';
 import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
-import { useKokoro } from '@/hooks/useKokoro';
 import { Button } from '@workspace/ui/components/button';
 import { Volume2, VolumeX } from 'lucide-react';
 import { useAutoSpeak } from '@/hooks/useAutoSpeak';
 
-export function Chat() {
+export function Chat({
+  kokoroProps,
+}: {
+  kokoroProps: {
+    enqueue: (text: string, messageId: string, startIndex: number) => void;
+    speakAs: (text: string, speakVoice: string) => void;
+    ready: boolean;
+    speaking: boolean;
+    muted: boolean;
+    toggleMute: () => void;
+    activeSentence: string | null;
+    activeMessageId: string | null;
+    activeStartIndex: number;
+  };
+}) {
   const { messages, sendMessage, isStreaming, error, stop } = useChat();
   const {
     enqueue,
@@ -19,7 +32,7 @@ export function Chat() {
     activeSentence,
     activeMessageId,
     activeStartIndex,
-  } = useKokoro('af_bella');
+  } = kokoroProps;
   const { data: models } = useModels();
   const bottomRef = useRef<HTMLDivElement>(null);
 

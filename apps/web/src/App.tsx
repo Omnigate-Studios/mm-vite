@@ -3,11 +3,11 @@ import { VRMViewer } from './components/vrm/vrm-viewer';
 import { useKokoro } from './hooks/useKokoro';
 
 export function App() {
-  const { lipSync } = useKokoro();
+  const { lipSync, ...rest } = useKokoro();
 
   return (
     <>
-      <Chat />
+      <Chat kokoroProps={rest} />
       <VRMViewer lipSync={lipSync} />
     </>
   );

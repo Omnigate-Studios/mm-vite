@@ -10,7 +10,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { AnimationMixer, MathUtils, Vector3 } from 'three';
 import type { Lipsync } from 'wawa-lipsync';
 
-const DEFAULT_CAMERA = { position: [0.2, 1.2, 2] as const, fov: 30 };
+const DEFAULT_CAMERA = { position: [0.125, 1.25, 2] as const, fov: 30 };
 const LOOK_AT = new Vector3(0, 1.33, 0);
 
 const VISEME_MAP: Record<string, string> = {

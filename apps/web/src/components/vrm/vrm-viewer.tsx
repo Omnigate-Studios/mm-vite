@@ -46,14 +46,6 @@ function useVRMAnimation(vrm: VRM | undefined, url: string, timeScale = 1) {
 
   useEffect(() => {
     if (!vrm) return;
-    console.log(
-      'expressions:',
-      Object.keys(vrm.expressionManager?.expressionMap ?? {})
-    );
-  }, [vrm]);
-
-  useEffect(() => {
-    if (!vrm) return;
     const vrmAnimation = vrma.userData.vrmAnimations?.[0];
     if (!vrmAnimation) return;
 

@@ -1,4 +1,3 @@
-import { stripAsterisks } from '@/utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Lipsync } from 'wawa-lipsync';
 
@@ -123,21 +122,14 @@ export const useKokoro = (voice = 'af_heart') => {
 
   const enqueue = useCallback(
     (text: string, messageId: string, startIndex: number) => {
-      const cleaned = stripAsterisks(text);
-      if (!cleaned.trim()) {
-        const actionText = text.replace(/\*([^*]*)\*/g, '$1').trim();
-        if (actionText) return;
-      }
-      fetchAndEnqueue(cleaned, voice, messageId, startIndex, true);
+      fetchAndEnqueue(text, voice, messageId, startIndex, true);
     },
     [voice, fetchAndEnqueue]
   );
 
   const speakAs = useCallback(
     (text: string, speakVoice: string) => {
-      const cleaned = stripAsterisks(text);
-      if (!cleaned.trim()) return;
-      fetchAndEnqueue(cleaned, speakVoice, '__user__', -1, false);
+      fetchAndEnqueue(text, speakVoice, '__user__', -1, false);
     },
     [fetchAndEnqueue]
   );

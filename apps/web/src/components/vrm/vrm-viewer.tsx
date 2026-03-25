@@ -6,11 +6,11 @@ import {
   VRMAnimationLoaderPlugin,
 } from '@pixiv/three-vrm-animation';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import * as THREE from 'three';
+import { AnimationMixer, MathUtils, Vector3 } from 'three';
 import type { Lipsync } from 'wawa-lipsync';
 
 const DEFAULT_CAMERA = { position: [0.2, 1.2, 2] as const, fov: 30 };
-const LOOK_AT = new THREE.Vector3(0, 1.33, 0);
+const LOOK_AT = new Vector3(0, 1.33, 0);
 
 const VISEME_MAP: Record<string, string> = {
   viseme_aa: 'aa',
@@ -38,7 +38,7 @@ function useVRM(url: string) {
 }
 
 function useVRMAnimation(vrm: VRM | undefined, url: string, timeScale = 1) {
-  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
+  const mixerRef = useRef<AnimationMixer | null>(null);
 
   const vrma = useLoader(GLTFLoader, url, (loader) => {
     loader.register((parser) => new VRMAnimationLoaderPlugin(parser));
@@ -49,7 +49,7 @@ function useVRMAnimation(vrm: VRM | undefined, url: string, timeScale = 1) {
     const vrmAnimation = vrma.userData.vrmAnimations?.[0];
     if (!vrmAnimation) return;
 
-    const mixer = new THREE.AnimationMixer(vrm.scene);
+    const mixer = new AnimationMixer(vrm.scene);
     const action = mixer.clipAction(createVRMAnimationClip(vrmAnimation, vrm));
     action.timeScale = timeScale;
     action.play();
@@ -92,7 +92,7 @@ function VRMModel({
     Object.entries(VISEME_MAP).forEach(([key, expr]) => {
       const current = vrm.expressionManager!.getValue(expr) ?? 0;
       const target = key === viseme ? 1 : 0;
-      const next = THREE.MathUtils.lerp(
+      const next = MathUtils.lerp(
         current,
         target,
         1 - Math.exp(-lerpSpeed * delta)
@@ -108,7 +108,7 @@ function VRMModel({
 export function VRMViewer({
   lipSync,
 }: {
-  lipSync: React.MutableRefObject<Lipsync | null>;
+  lipSync: React.RefObject<Lipsync | null>;
 }) {
   return (
     <div className="fixed inset-0">

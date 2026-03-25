@@ -1,6 +1,8 @@
 import type { Message } from '@/components/chat/MessageBubble';
 import { useEffect, useRef } from 'react';
 
+const SENTENCE_RE = /[^.!?\n]+[.!?]+|[^.!?\n]*\n+/g;
+
 export const useAutoSpeak = (
   messages: Message[],
   isStreaming: boolean,
@@ -26,7 +28,7 @@ export const useAutoSpeak = (
     if (!isStreaming) {
       if (unspoken.trim() && !finalFlushed.current) {
         finalFlushed.current = true;
-        const remaining = unspoken.match(/[^.!?\n]+[.!?]+|[^.!?\n]*\n+/g) ?? [];
+        const remaining = unspoken.match(SENTENCE_RE) ?? [];
         let offset = spokenUpTo.current;
         for (const sentence of remaining) {
           enqueue(sentence, last.id, offset);
@@ -40,7 +42,7 @@ export const useAutoSpeak = (
       return;
     }
 
-    const sentences = unspoken.match(/[^.!?\n]+[.!?]+|[^.!?\n]*\n+/g) ?? [];
+    const sentences = unspoken.match(SENTENCE_RE) ?? [];
     if (!sentences.length) return;
 
     for (const sentence of sentences) {

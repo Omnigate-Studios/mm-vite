@@ -4,6 +4,7 @@ import { VRMLoaderPlugin, VRMUtils, type VRM } from '@pixiv/three-vrm';
 import {
   createVRMAnimationClip,
   VRMAnimationLoaderPlugin,
+  VRMLookAtQuaternionProxy,
 } from '@pixiv/three-vrm-animation';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { AnimationMixer, MathUtils, Vector3 } from 'three';
@@ -49,6 +50,10 @@ function useVRMAnimation(vrm: VRM | undefined, url: string, timeScale = 1) {
     const vrmAnimation = vrma.userData.vrmAnimations?.[0];
     if (!vrmAnimation) return;
 
+    const proxy = new VRMLookAtQuaternionProxy(vrm.lookAt);
+    proxy.name = 'VRMLookAtQuaternionProxy';
+    vrm.scene.add(proxy);
+
     const mixer = new AnimationMixer(vrm.scene);
     const action = mixer.clipAction(createVRMAnimationClip(vrmAnimation, vrm));
     action.timeScale = timeScale;
@@ -57,6 +62,7 @@ function useVRMAnimation(vrm: VRM | undefined, url: string, timeScale = 1) {
 
     return () => {
       mixer.stopAllAction();
+      vrm.scene.remove(proxy);
     };
   }, [vrm, vrma, timeScale]);
 

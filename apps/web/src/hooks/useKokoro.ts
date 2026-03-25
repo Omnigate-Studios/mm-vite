@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Lipsync } from 'wawa-lipsync';
-
-export const API_BASE = import.meta.env.VITE_API_BASE ?? '/api';
+import { API_BASE } from '@/lib/api';
 
 export const useKokoro = (voice = 'af_heart') => {
   const [speaking, setSpeaking] = useState(false);
@@ -39,7 +38,11 @@ export const useKokoro = (voice = 'af_heart') => {
       }
       isPlaying.current = true;
       setSpeaking(true);
-      const { buffer, blobUrl, useLipSync } = audioQueue.current.shift()!;
+      const { buffer, blobUrl, sentence, messageId, startIndex, useLipSync } =
+        audioQueue.current.shift()!;
+      setActiveSentence(sentence);
+      setActiveMessageId(messageId);
+      setActiveStartIndex(startIndex);
 
       if (useLipSync && lipSync.current) {
         const audioEl = new Audio();

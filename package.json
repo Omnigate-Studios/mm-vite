@@ -32,6 +32,7 @@
     "kokoro-js": "^1.2.1",
     "lucide-react": "^1.6.0",
     "rehype-raw": "^7.0.0",
-    "three": "^0.183.2"
+    "three": "^0.183.2",
+    "wawa-lipsync": "^0.0.2"
   }
 }

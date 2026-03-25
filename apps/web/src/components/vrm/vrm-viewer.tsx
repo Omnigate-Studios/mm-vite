@@ -7,9 +7,18 @@ import {
 } from '@pixiv/three-vrm-animation';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as THREE from 'three';
+import type { Lipsync } from 'wawa-lipsync';
 
 const DEFAULT_CAMERA = { position: [0.2, 1.2, 2] as const, fov: 30 };
 const LOOK_AT = new THREE.Vector3(0, 1.33, 0);
+
+const VISEME_MAP: Record<string, string> = {
+  viseme_aa: 'aa',
+  viseme_E: 'ee',
+  viseme_I: 'ih',
+  viseme_O: 'oh',
+  viseme_U: 'ou',
+};
 
 function useVRM(url: string) {
   const gltf = useLoader(GLTFLoader, url, (loader) => {
@@ -58,10 +67,12 @@ function VRMModel({
   url,
   animationUrl,
   timeScale = 1,
+  lipSync,
 }: {
   url: string;
   animationUrl: string;
   timeScale?: number;
+  lipSync: React.MutableRefObject<Lipsync | null>;
 }) {
   const vrm = useVRM(url);
   const mixerRef = useVRMAnimation(vrm, animationUrl, timeScale);
@@ -69,13 +80,31 @@ function VRMModel({
   useFrame((_, delta) => {
     mixerRef.current?.update(delta);
     vrm?.update(delta);
+
+    if (!vrm?.expressionManager) return;
+    const ls = lipSync.current;
+    if (!ls) return;
+
+    ls.processAudio();
+    const viseme = ls.viseme;
+
+    Object.values(VISEME_MAP).forEach((expr) => {
+      vrm.expressionManager?.setValue(expr, 0);
+    });
+
+    const expr = VISEME_MAP[viseme];
+    if (expr) vrm.expressionManager.setValue(expr, 1);
   });
 
   if (!vrm) return null;
   return <primitive object={vrm.scene} />;
 }
 
-export function VRMViewer() {
+export function VRMViewer({
+  lipSync,
+}: {
+  lipSync: React.MutableRefObject<Lipsync | null>;
+}) {
   return (
     <div className="fixed inset-0">
       <Canvas
@@ -84,7 +113,12 @@ export function VRMViewer() {
       >
         <ambientLight intensity={0.8} />
         <directionalLight position={[1, 2, 3]} intensity={1} />
-        <VRMModel url="/char.vrm" animationUrl="/idle.vrma" timeScale={0.33} />
+        <VRMModel
+          url="/char.vrm"
+          animationUrl="/idle.vrma"
+          timeScale={0.33}
+          lipSync={lipSync}
+        />
       </Canvas>
     </div>
   );

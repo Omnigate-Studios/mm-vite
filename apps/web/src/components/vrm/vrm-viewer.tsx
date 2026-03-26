@@ -7,10 +7,16 @@ import {
   VRMLookAtQuaternionProxy,
 } from '@pixiv/three-vrm-animation';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { AnimationMixer, MathUtils, Object3D, Vector3 } from 'three';
+import {
+  AnimationAction,
+  AnimationMixer,
+  MathUtils,
+  Object3D,
+  Vector3,
+} from 'three';
 import type { Lipsync } from 'wawa-lipsync';
 
-const DEFAULT_CAMERA = { position: [0.125, 1.25, 2] as const, fov: 30 };
+const DEFAULT_CAMERA = { position: [0.5, 1.25, 2] as const, fov: 30 };
 const LOOK_AT = new Vector3(0, 1.33, 0);
 
 const VISEME_MAP: Record<string, string> = {
@@ -32,15 +38,18 @@ const GLANCE_INTERVAL_MIN = 3.75;
 const GLANCE_INTERVAL_RANGE = 3.75;
 const GAZE_LERP_SPEED = 5;
 const VISEME_LERP_SPEED = 12;
+const CROSSFADE_SPEED = 0.5;
+const TALK_TIMEOUT = 2.0;
 
 const GLANCE_POSITIONS = [
-  new Vector3(0.125, -0.85, 1.5),  // down
-  new Vector3(-3.125, 1.25, 1.5),  // left
-  new Vector3(3.375, 1.25, 1.5),   // right
+  new Vector3(0.125, -0.85, 1.5), // down
+  new Vector3(-3.125, 1.25, 1.5), // left
+  new Vector3(3.375, 1.25, 1.5), // right
 ];
 
 const expDecay = (speed: number, delta: number) => 1 - Math.exp(-speed * delta);
-const randomInterval = (min: number, range: number) => min + Math.random() * range;
+const randomInterval = (min: number, range: number) =>
+  min + Math.random() * range;
 
 function useVRM(url: string) {
   const { camera } = useThree();
@@ -65,50 +74,86 @@ function useVRM(url: string) {
   return vrm;
 }
 
-function useVRMAnimation(vrm: VRM | undefined, url: string, timeScale = 1) {
-  const mixerRef = useRef<AnimationMixer | null>(null);
-
-  const vrma = useLoader(GLTFLoader, url, (loader) => {
+function useVRMALoader(url: string) {
+  return useLoader(GLTFLoader, url, (loader) => {
     loader.register((parser) => new VRMAnimationLoaderPlugin(parser));
   });
+}
+
+function useVRMAnimations(
+  vrm: VRM | undefined,
+  idleUrl: string,
+  talkUrl: string,
+  idleTimeScale = 0.33,
+  talkTimeScale = 1
+) {
+  const mixerRef = useRef<AnimationMixer | null>(null);
+  const idleActionRef = useRef<AnimationAction | null>(null);
+  const talkActionRef = useRef<AnimationAction | null>(null);
+
+  const idleGltf = useVRMALoader(idleUrl);
+  const talkGltf = useVRMALoader(talkUrl);
 
   useEffect(() => {
     if (!vrm?.lookAt) return;
-    const vrmAnimation = vrma.userData.vrmAnimations?.[0];
-    if (!vrmAnimation) return;
+    const idleAnim = idleGltf.userData.vrmAnimations?.[0];
+    const talkAnim = talkGltf.userData.vrmAnimations?.[0];
+    if (!idleAnim || !talkAnim) return;
 
     const proxy = new VRMLookAtQuaternionProxy(vrm.lookAt);
     proxy.name = 'VRMLookAtQuaternionProxy';
     vrm.scene.add(proxy);
 
     const mixer = new AnimationMixer(vrm.scene);
-    const action = mixer.clipAction(createVRMAnimationClip(vrmAnimation, vrm));
-    action.timeScale = timeScale;
-    action.play();
+
+    const idleAction = mixer.clipAction(createVRMAnimationClip(idleAnim, vrm));
+    idleAction.timeScale = idleTimeScale;
+    idleAction.play();
+
+    const talkAction = mixer.clipAction(createVRMAnimationClip(talkAnim, vrm));
+    talkAction.timeScale = talkTimeScale;
+    talkAction.setEffectiveWeight(0);
+    talkAction.play();
+
     mixerRef.current = mixer;
+    idleActionRef.current = idleAction;
+    talkActionRef.current = talkAction;
 
     return () => {
       mixer.stopAllAction();
       vrm.scene.remove(proxy);
+      mixerRef.current = null;
+      idleActionRef.current = null;
+      talkActionRef.current = null;
     };
-  }, [vrm, vrma, timeScale]);
+  }, [vrm, idleGltf, talkGltf, idleTimeScale, talkTimeScale]);
 
-  return mixerRef;
+  return { mixerRef, idleActionRef, talkActionRef };
 }
 
 function VRMModel({
   url,
-  animationUrl,
-  timeScale = 1,
+  idleUrl,
+  talkUrl,
+  idleTimeScale = 0.33,
+  talkTimeScale = 1,
   lipSync,
 }: {
   url: string;
-  animationUrl: string;
-  timeScale?: number;
+  idleUrl: string;
+  talkUrl: string;
+  idleTimeScale?: number;
+  talkTimeScale?: number;
   lipSync: React.RefObject<Lipsync | null>;
 }) {
   const vrm = useVRM(url);
-  const mixerRef = useVRMAnimation(vrm, animationUrl, timeScale);
+  const { mixerRef, idleActionRef, talkActionRef } = useVRMAnimations(
+    vrm,
+    idleUrl,
+    talkUrl,
+    idleTimeScale,
+    talkTimeScale
+  );
 
   const blinkTimerRef = useRef(7);
   const blinkPhaseRef = useRef<'closing' | 'opening' | null>(null);
@@ -118,9 +163,18 @@ function VRMModel({
   const glancePosRef = useRef(new Vector3());
   const gazeObjRef = useRef(new Object3D());
 
+  const talkWeightRef = useRef(0);
+  const talkTimeoutRef = useRef(0);
+
   useEffect(() => {
-    blinkTimerRef.current = randomInterval(BLINK_INTERVAL_MIN, BLINK_INTERVAL_RANGE);
-    glanceTimerRef.current = randomInterval(GLANCE_INTERVAL_MIN, GLANCE_INTERVAL_RANGE);
+    blinkTimerRef.current = randomInterval(
+      BLINK_INTERVAL_MIN,
+      BLINK_INTERVAL_RANGE
+    );
+    glanceTimerRef.current = randomInterval(
+      GLANCE_INTERVAL_MIN,
+      GLANCE_INTERVAL_RANGE
+    );
   }, []);
 
   useEffect(() => {
@@ -134,6 +188,26 @@ function VRMModel({
     mixerRef.current?.update(delta);
     vrm?.update(delta);
 
+    // Process lipsync early to know current speaking state
+    const ls = lipSync.current;
+    if (ls) {
+      ls.processAudio();
+      if (ls.viseme && ls.viseme in VISEME_MAP) {
+        talkTimeoutRef.current = TALK_TIMEOUT;
+      }
+    }
+
+    // Crossfade between idle and talk animations based on speaking state
+    talkTimeoutRef.current = Math.max(0, talkTimeoutRef.current - delta);
+    const talkWeight = MathUtils.lerp(
+      talkWeightRef.current,
+      talkTimeoutRef.current > 0 ? 1 : 0,
+      expDecay(CROSSFADE_SPEED, delta)
+    );
+    talkWeightRef.current = talkWeight;
+    talkActionRef.current?.setEffectiveWeight(talkWeight);
+    idleActionRef.current?.setEffectiveWeight(1 - talkWeight);
+
     if (!vrm?.lookAt) return;
 
     // Glancing
@@ -146,10 +220,18 @@ function VRMModel({
       );
     } else if (isGlancingRef.current && glanceTimerRef.current <= 0) {
       isGlancingRef.current = false;
-      glanceTimerRef.current = randomInterval(GLANCE_INTERVAL_MIN, GLANCE_INTERVAL_RANGE);
+      glanceTimerRef.current = randomInterval(
+        GLANCE_INTERVAL_MIN,
+        GLANCE_INTERVAL_RANGE
+      );
     }
-    const gazeTarget = isGlancingRef.current ? glancePosRef.current : state.camera.position;
-    gazeObjRef.current.position.lerp(gazeTarget, expDecay(GAZE_LERP_SPEED, delta));
+    const gazeTarget = isGlancingRef.current
+      ? glancePosRef.current
+      : state.camera.position;
+    gazeObjRef.current.position.lerp(
+      gazeTarget,
+      expDecay(GAZE_LERP_SPEED, delta)
+    );
 
     const em = vrm.expressionManager;
     if (!em) return;
@@ -161,26 +243,35 @@ function VRMModel({
       blinkPhaseRef.current = 'closing';
     }
     if (blinkPhaseRef.current === 'closing') {
-      const next = MathUtils.lerp(blinkValue, 1, expDecay(BLINK_CLOSE_SPEED, delta));
+      const next = MathUtils.lerp(
+        blinkValue,
+        1,
+        expDecay(BLINK_CLOSE_SPEED, delta)
+      );
       em.setValue('blink', next);
       if (next > 0.99) {
         em.setValue('blink', 1);
         blinkPhaseRef.current = 'opening';
       }
     } else if (blinkPhaseRef.current === 'opening') {
-      const next = MathUtils.lerp(blinkValue, 0, expDecay(BLINK_OPEN_SPEED, delta));
+      const next = MathUtils.lerp(
+        blinkValue,
+        0,
+        expDecay(BLINK_OPEN_SPEED, delta)
+      );
       em.setValue('blink', next);
       if (next < 0.01) {
         em.setValue('blink', 0);
         blinkPhaseRef.current = null;
-        blinkTimerRef.current = randomInterval(BLINK_INTERVAL_MIN, BLINK_INTERVAL_RANGE);
+        blinkTimerRef.current = randomInterval(
+          BLINK_INTERVAL_MIN,
+          BLINK_INTERVAL_RANGE
+        );
       }
     }
 
-    const ls = lipSync.current;
+    // Viseme expressions (ls already processed above)
     if (!ls) return;
-
-    ls.processAudio();
     const viseme = ls.viseme;
     const visemeDecay = expDecay(VISEME_LERP_SPEED, delta);
     for (const [key, expr] of VISEME_ENTRIES) {
@@ -209,8 +300,9 @@ export function VRMViewer({
         <directionalLight position={[1, 2, 3]} intensity={1} />
         <VRMModel
           url="/char.vrm"
-          animationUrl="/idle.vrma"
-          timeScale={0.33}
+          idleUrl="/idle.vrma"
+          talkUrl="/talk.vrma"
+          talkTimeScale={0.33}
           lipSync={lipSync}
         />
       </Canvas>

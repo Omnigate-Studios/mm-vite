@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Lipsync } from 'wawa-lipsync';
 import { API_BASE } from '@/lib/api';
 
-export const useKokoro = (voice = 'af_bella') => {
+export const useKokoro = (voice = 'af_heart') => {
   const [speaking, setSpeaking] = useState(false);
   const [muted, setMuted] = useState(false);
   const [activeSentence, setActiveSentence] = useState<string | null>(null);

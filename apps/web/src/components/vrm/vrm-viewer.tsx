@@ -16,8 +16,8 @@ import {
 } from 'three';
 import type { Lipsync } from 'wawa-lipsync';
 
-const DEFAULT_CAMERA = { position: [0.5, 1.25, 2] as const, fov: 30 };
-const LOOK_AT = new Vector3(0, 1.33, 0);
+const DEFAULT_CAMERA = { position: [0.2, 1.5, 1.5] as const, fov: 30 };
+const LOOK_AT = new Vector3(0, 1.5, 0);
 
 const VISEME_MAP: Record<string, string> = {
   viseme_aa: 'aa',
